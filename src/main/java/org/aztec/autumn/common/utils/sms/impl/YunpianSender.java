@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class YunpianSender implements SMSSender {
 
 	private static final String YUN_PIAN_SMS_SEND_API_URL = "https://sms.yunpian.com/v1/sms/send.json";
-	private static String API_KEY = "22d91b8ac190767eb6042b8d1ef3cba7";
+	private static String API_KEY = "";
 	private static final Logger LOG = LoggerFactory.getLogger(YunpianSender.class);
 	private static final ResourceBundle bundler = ResourceBundle.getBundle("sms_msg",Locale.SIMPLIFIED_CHINESE);
 	
