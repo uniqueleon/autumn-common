@@ -15,5 +15,17 @@ public interface GlobalConst {
 	public static final int MAX_BUFFER_SIZE = 1 * 1024 * 1024;
 	public static final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 	
-	
+
+	// id | name | content | type | desc | c_gmt | u_gmt | 
+	public static interface META_DATA_CENTER_INFO{
+		public static final String BASE_TABLE_NAME = "base_meta_info";
+
+		public static final int ZOOKEEPER_CONNECT_INFO_TYPE = 1;
+		public static final String ZOOKEEPER_CONNECT_QUERY_SQL = "SELECT `content` from " + BASE_TABLE_NAME + " where type=" + ZOOKEEPER_CONNECT_INFO_TYPE + " limit 1";
+		public static final String[] TABLE_COLUMNS = {"id","name","content","type","desc","c_gmt","u_gmt"}; 
+		public static final int CONTENT_COLUMN_INDEX = 2;
+		public static final int NAME_COLUMN_INDEX = 1;
+		public static final int TYPE_COLUMN_INDEX = 3;
+		public static final int DESC_COLUMN_INDEX = 4;
+	}
 }
