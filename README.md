@@ -1,2 +1,4 @@
 # autumn-common
-The next generation of programming framework based on AI! No IoC, No DI, No Aop, Only has data and processors.The main goal of Autumn is to become the  successor of spring.
+工具大杂烩+内陷服务器+rpc+算法骨架
+工具：各种工具，OCR，不定方程求解、同余方程求解、装箱问题、调和级数
+算法框架:遗传算法（含demo）
