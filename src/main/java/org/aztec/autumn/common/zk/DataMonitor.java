@@ -6,19 +6,18 @@ import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataMonitor implements Watcher, StatCallback {
+public class DataMonitor implements StatCallback , PathWatcher,ChainedWatcher {
 
     ZooKeeper zk;
 
     String znode;
 
-    Watcher chainedWatcher;
+    ChainedWatcher chainedWatcher;
 
     boolean dead;
 
@@ -28,12 +27,13 @@ public class DataMonitor implements Watcher, StatCallback {
     
     private static final Logger LOG = LoggerFactory.getLogger(DataMonitor.class);
 
-    public DataMonitor(ZooKeeper zk, String znode, Watcher chainedWatcher,
+    public DataMonitor(ZooKeeper zk, String znode, ChainedWatcher chainedWatcher,
             DataMonitorListener listener) {
         this.zk = zk;
         this.znode = znode;
         this.chainedWatcher = chainedWatcher;
         this.listener = listener;
+        BaseWatcher.addWatcher(this);
         // Get things started by checking if the node exists. We are going
         // to be completely event driven
         //zk.exists(znode, true, this, null);
@@ -46,7 +46,7 @@ public class DataMonitor implements Watcher, StatCallback {
         /**
          * The existence status of the node has changed.
          */
-        void exists(byte data[]);
+        void exists(byte data[],Stat stat);
 
         /**
          * The ZooKeeper session is no longer valid.
@@ -80,9 +80,6 @@ public class DataMonitor implements Watcher, StatCallback {
                 // Something has changed on the node, let's find out
                 zk.exists(znode, true, this, null);
             }
-        }
-        if (chainedWatcher != null) {
-            chainedWatcher.process(event);
         }
     }
 
@@ -120,8 +117,28 @@ public class DataMonitor implements Watcher, StatCallback {
         }
         if ((b == null && b != prevData)
                 || (b != null && !Arrays.equals(prevData, b))) {
-            listener.exists(b);
+            listener.exists(b,stat);
             prevData = b;
         }
     }
+
+	@Override
+	public ChainedWatcher next() {
+		return chainedWatcher;
+	}
+
+	@Override
+	public ChainedWatcher setNext(ChainedWatcher nextWatcher) {
+		chainedWatcher = nextWatcher;
+		return chainedWatcher;
+	}
+
+	@Override
+	public String getPath() {
+		return znode;
+	}
+	
+	public void stop() {
+		BaseWatcher.removeWatcher(this);
+	}
 }

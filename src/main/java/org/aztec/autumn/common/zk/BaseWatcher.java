@@ -1,18 +1,16 @@
 package org.aztec.autumn.common.zk;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.Stat;
-import org.aztec.autumn.common.zk.DataMonitor.DataMonitorListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BaseWatcher implements Watcher, Runnable {
+import com.google.common.collect.Maps;
+
+public class BaseWatcher implements Watcher {
 	
 
 	//private static List<DataMonitorListener> listeners = new ArrayList<>(); 
@@ -21,9 +19,8 @@ public class BaseWatcher implements Watcher, Runnable {
 	
 	private static BaseWatcher singleton = new BaseWatcher();
 	
-	private static ChainedWatcher otherWatcher;
 	
-	private static Object lockObj = new Object();
+	private static Map<String,Watcher> watchers = Maps.newConcurrentMap();
 	
 	private static final Logger LOG  = LoggerFactory.getLogger(BaseWatcher.class);
 
@@ -43,21 +40,20 @@ public class BaseWatcher implements Watcher, Runnable {
 		zk.register(singleton);
 	}
 	
-	public static void addWatcher(ChainedWatcher watcher) {
-		if(otherWatcher == null) {
-			synchronized (lockObj) {
-				if(otherWatcher == null) {
-					otherWatcher = watcher;
-					return;
-				}else {
-					otherWatcher.setNext(watcher);
-				}
-			}
+	
+	public static void addWatcher(PathWatcher watcher) {
+		if(watcher.getPath() == null || watcher.getPath().isEmpty()) {
+
+			throw new IllegalArgumentException("The path "  + watcher.getPath() + " is needed!");
 		}
-		else {
-			otherWatcher.setNext(watcher);
+
+		if(watchers.containsKey(watcher.getPath())) {
+			throw new IllegalArgumentException("The path "  + watcher.getPath() + " is exists!");
 		}
-		
+	}
+	
+	public static void removeWatcher(PathWatcher watcher) {
+		watchers.remove(watcher.getPath());
 	}
 	
 	
@@ -73,24 +69,21 @@ public class BaseWatcher implements Watcher, Runnable {
 	 * @see org.apache.zookeeper.Watcher#process(org.apache.zookeeper.proto.WatcherEvent)
 	 */
 	public void process(WatchedEvent event) {
-		
-		ChainedWatcher thisWatcher = otherWatcher;
-		while(thisWatcher != null) {
-			thisWatcher.process(event);
-			thisWatcher = thisWatcher.next();
+
+		String path = event.getPath();
+		Watcher watcher = watchers.get(path);
+		watcher.process(event);			
+		if(watcher instanceof ChainedWatcher) {
+			ChainedWatcher thisWatcher = (ChainedWatcher) watcher;
+			ChainedWatcher nextWatcher = thisWatcher.next();
+			while(nextWatcher != null) {
+				nextWatcher.process(event);
+				nextWatcher = nextWatcher.next();
+			}
 		}
+		
 	}
 
-	public void run() {
-		/*try {
-			synchronized (this) {
-				while (!dm.dead) {
-					wait();
-				}
-			}
-		} catch (InterruptedException e) {
-		}*/
-	}
 
 
 }

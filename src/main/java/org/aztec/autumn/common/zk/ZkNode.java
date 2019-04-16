@@ -32,13 +32,22 @@ public abstract class ZkNode implements DataMonitorListener{
 		this.dataID = dataID;
 		znode = dataID.replace(".", "/");
 		znode = "/" + znode;
-		monitor = new DataMonitor(zk, znode, BaseWatcher.getWatcher(), this);
+		monitor = new DataMonitor(zk, znode, null, this);
+		stat = zk.exists(znode, true);
+	}
+	
+	public ZkNode(String dataID,ChainedWatcher watcher) throws IOException, KeeperException, InterruptedException {
+		zk = ZkConnector.getKeeper();
+		this.dataID = dataID;
+		znode = dataID.replace(".", "/");
+		znode = "/" + znode;
+		monitor = new DataMonitor(zk, znode, watcher, this);
 		stat = zk.exists(znode, true);
 	}
 	
 	protected void init()  {
 		try {
-			exists(zk.getData(znode, monitor, stat));
+			exists(zk.getData(znode, monitor, stat),stat);
 		} catch (Exception e) {
 			isDeprecated = true;
 			dataStr = "";
@@ -46,11 +55,12 @@ public abstract class ZkNode implements DataMonitorListener{
 	}
 
 	@Override
-	public void exists(byte[] data) {
+	public void exists(byte[] data,Stat stat) {
 		// TODO Auto-generated method stub
 		if(data != null) {
 			try {
 				this.dataStr = new String(data,GlobalConst.DEFAULT_CHARSET);
+				this.stat = stat;
 			} catch (UnsupportedEncodingException e) {
 				LOG.error(e.getMessage(),e);
 			}
@@ -105,6 +115,10 @@ public abstract class ZkNode implements DataMonitorListener{
 		return stat.getVersion();
 	}
 	
+	public int getDataVarsion() {
+		return stat.getCversion();
+	}
+	
 	public void write(String newData) throws UnsupportedEncodingException, KeeperException, InterruptedException {
 		if(zk.exists(znode, false) == null){
 			List<ACL> aclList = new ArrayList<>();
@@ -117,5 +131,8 @@ public abstract class ZkNode implements DataMonitorListener{
 	
 	protected abstract void notifyChanges() throws Exception;
 	
-	
+
+	public void destroy() {
+		monitor.stop();
+	}
 }

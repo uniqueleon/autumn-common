@@ -12,6 +12,13 @@ public class ZkConfigTest {
 		try {
 			ZkConfig zkConf = new ZkConfig("com.aztec", ConfigFormat.TEXT);
 			System.out.println(zkConf.getDataStr());
+			int testTime = 60;
+			while(testTime > 0) {
+				System.out.println(zkConf.getDataStr());
+				testTime --;
+				Thread.currentThread().sleep(1000);
+			}
+			System.exit(0);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
