@@ -1,12 +1,11 @@
 package org.aztec.autumn.common.zk;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.zookeeper.KeeperException;
@@ -57,8 +56,11 @@ public class ZkConfig extends ZkNode {
 		write(writeContent);
 	}
 	
-	private void readFromMap(Map<String, String> datas) throws IllegalArgumentException, IllegalAccessException, SecurityException,
-			NoSuchFieldException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+	public void update() {
+		
+	}
+	
+	private void readFromMap(Map<String, String> datas)  {
 		Class thisCls = this.getClass();
 		Field[] allFields = this.getClass().getDeclaredFields();
 		for (Field field : allFields) {
@@ -66,8 +68,33 @@ public class ZkConfig extends ZkNode {
 			if (datas.get(fieldName) == null)
 				continue;
 			Class fieldType = field.getType();
-			Object value = fieldType.getConstructor(String.class).newInstance(datas.get(fieldName));
-			reflectUtil.setValue(fieldName, this, value, false);
+			Object value = datas.get(fieldName);
+			Class valueType = value.getClass();
+			try {
+				if(!fieldType.equals(valueType)) {
+					value = newInstance(fieldType, valueType, value);
+					if(value == null) {
+						continue;
+					}
+				}
+				reflectUtil.setValue(fieldName, this, value, false);
+			} catch (Exception e) {
+				LOG.error(e.getMessage());
+			}
+		}
+	}
+	
+	private Object newInstance(Class type1,Class type2,Object value) {
+		try {
+			Constructor c = type1.getConstructor(type2);
+			return c.newInstance(value);
+		} catch (Exception e) {
+			try {
+				Constructor c = type1.getConstructor(String.class);
+				return c.newInstance("" + value.toString());
+			} catch (Exception e1) {
+				return null;
+			}
 		}
 	}
 	
@@ -81,6 +108,9 @@ public class ZkConfig extends ZkNode {
 			}
 			String fieldName = field.getName();
 			Object value = reflectUtil.getValue(fieldName, this, true);
+			if(value == null) {
+				continue;
+			}
 			datas.put(fieldName, value);
 		}
 		return datas;
@@ -121,12 +151,8 @@ public class ZkConfig extends ZkNode {
 		String dataStr = getDataStr();
 		switch (format) {
 		case JSON:
-			try {
-				datas = jsonUtil.json2Object(getDataStr(), Map.class);
-				readFromMap(datas);
-			} catch (Exception e) {
-				LOG.error(e.getMessage(),e);
-			}
+			datas = jsonUtil.json2Object(getDataStr(), Map.class);
+			readFromMap(datas);
 			break;
 		case PROPERTIES:
 			String[] lines = dataStr.split("\n");

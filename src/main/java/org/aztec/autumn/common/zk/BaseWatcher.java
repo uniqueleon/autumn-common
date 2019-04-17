@@ -2,6 +2,7 @@ package org.aztec.autumn.common.zk;
 
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -71,14 +72,16 @@ public class BaseWatcher implements Watcher {
 	public void process(WatchedEvent event) {
 
 		String path = event.getPath();
-		Watcher watcher = watchers.get(path);
-		watcher.process(event);			
-		if(watcher instanceof ChainedWatcher) {
-			ChainedWatcher thisWatcher = (ChainedWatcher) watcher;
-			ChainedWatcher nextWatcher = thisWatcher.next();
-			while(nextWatcher != null) {
-				nextWatcher.process(event);
-				nextWatcher = nextWatcher.next();
+		if(!StringUtils.isEmpty(path)) {
+			Watcher watcher = watchers.get(path);
+			watcher.process(event);			
+			if(watcher instanceof ChainedWatcher) {
+				ChainedWatcher thisWatcher = (ChainedWatcher) watcher;
+				ChainedWatcher nextWatcher = thisWatcher.next();
+				while(nextWatcher != null) {
+					nextWatcher.process(event);
+					nextWatcher = nextWatcher.next();
+				}
 			}
 		}
 		
