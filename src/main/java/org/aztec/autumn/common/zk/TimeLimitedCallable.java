@@ -7,4 +7,5 @@ public interface TimeLimitedCallable<V> extends Callable<V> {
 
 	public Long getTime();
 	public TimeUnit getUnit();
+	public void interupt();
 }

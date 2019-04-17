@@ -28,12 +28,6 @@ public class ZkConfig extends ZkNode {
 		JSON, PROPERTIES,TEXT,MAP;
 	}
 
-	public ZkConfig(String dataID,  ConfigFormat format, List<TimeLimitedCallable> callbacks) throws IOException, KeeperException, InterruptedException {
-		super(dataID,new CallableWatcher(callbacks,null));
-		this.format = format;
-		init();
-	}
-
 	public ZkConfig(String dataID, ConfigFormat format) throws IOException, KeeperException, InterruptedException {
 		super(dataID);
 		this.format = format;

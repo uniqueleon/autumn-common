@@ -36,13 +36,9 @@ public abstract class ZkNode implements DataMonitorListener{
 		stat = zk.exists(znode, true);
 	}
 	
-	public ZkNode(String dataID,ChainedWatcher watcher) throws IOException, KeeperException, InterruptedException {
-		zk = ZkConnector.getKeeper();
-		this.dataID = dataID;
-		znode = dataID.replace(".", "/");
-		znode = "/" + znode;
-		monitor = new DataMonitor(zk, znode, watcher, this);
-		stat = zk.exists(znode, true);
+	
+	protected void appendWatcher(ChainedWatcher watcher) {
+		monitor.setNext(watcher);
 	}
 	
 	protected void init()  {
