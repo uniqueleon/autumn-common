@@ -228,4 +228,14 @@ public class StringUtils {
 	public static boolean isEmpty(String testStr) {
 		return isBlank(testStr);
 	}
+	
+	public static int getLeasePadding(int maxNum) {
+		int count = 0;
+		int tmp = maxNum;
+		while(tmp > 0) {
+			count++;
+			tmp /= 10;
+		}
+		return count;
+	}
 }
