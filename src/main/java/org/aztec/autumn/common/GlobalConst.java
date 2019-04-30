@@ -15,6 +15,7 @@ public interface GlobalConst {
 	public static final int MAX_BUFFER_SIZE = 1 * 1024 * 1024;
 	public static final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 	
+	public static final String ZOOKEEPER_PATH_SPLITOR = ".";
 
 	// id | name | content | type | desc | c_gmt | u_gmt | 
 	public static interface META_DATA_CENTER_INFO{

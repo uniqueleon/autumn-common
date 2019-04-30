@@ -18,13 +18,13 @@ import org.slf4j.LoggerFactory;
 
 public abstract class ZkNode implements DataMonitorListener{
 
-	private String dataID;
-	private String znode;
-	private String dataStr = "";
-	private DataMonitor monitor;
-	private boolean isDeprecated = false;
-	private ZooKeeper zk;
-	private Stat stat;
+	protected String dataID;
+	protected String znode;
+	protected String dataStr = "";
+	protected DataMonitor monitor;
+	protected boolean isDeprecated = false;
+	protected ZooKeeper zk;
+	protected Stat stat;
 	private static final Logger LOG = LoggerFactory.getLogger(ZkNode.class);
 	
 	public ZkNode(String dataID) throws IOException, KeeperException, InterruptedException {
