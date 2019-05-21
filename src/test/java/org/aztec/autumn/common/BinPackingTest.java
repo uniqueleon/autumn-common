@@ -14,8 +14,10 @@ import org.aztec.autumn.common.math.equations.DESolutionConstraint.DESolutionCon
 import org.aztec.autumn.common.math.equations.DiophantineEquation;
 import org.aztec.autumn.common.math.equations.DiophantineResult;
 import org.aztec.autumn.common.math.modeling.packing.BinPackingConfig;
+import org.aztec.autumn.common.math.modeling.packing.BinPackingException;
 import org.aztec.autumn.common.math.modeling.packing.BinPackingSolution;
 import org.aztec.autumn.common.math.modeling.packing.BinPackingSolver;
+import org.aztec.autumn.common.math.modeling.packing.BinPackingSolverFactory;
 import org.aztec.autumn.common.math.modeling.packing.Box;
 import org.aztec.autumn.common.math.modeling.packing.Item;
 import org.aztec.autumn.common.math.modeling.packing.Location;
@@ -227,20 +229,20 @@ public class BinPackingTest {
 
 	}
 
-	public static void runTestBugCase() {
+	public static void runTestBugCase() throws BinPackingException {
 		Box box = new Box("#11", new Long[] { 65l, 65l, 160l }, 1l, 1l);
 		box.setLocation(new Location(0d, 70d, 0d));
 		List<Item> items = Lists.newArrayList();
 		Item item = new Item("6927462206297", new Long[] { 28l, 65l, 70l }, 1l, 5l);
 		items.add(item);
-		BinPackingConfig config = new BinPackingConfig(items, box, 1, null);
-		BinPackingSolver solver = new BinPackingSolver();
+		BinPackingConfig config = new BinPackingConfig(items, box, 1d);
+		BinPackingSolver solver = BinPackingSolverFactory.getSolver();
 		BinPackingSolution solution = solver.solve(config);
 
 		System.out.println(solution);
 	}
 
-	public static void runCaoLiaoSample(int testNum, String orderNo) {
+	public static void runCaoLiaoSample(int testNum, String orderNo) throws BinPackingException {
 		try {
 			// readBoxesData(new File("test/tjTmallBoxes.csv"));
 			List<SaleOrder> orders = readOrderData(new File("test/CNNJ1500+.csv"), new File("test/tjTmallBoxes.csv"));
@@ -252,7 +254,7 @@ public class BinPackingTest {
 			 */
 
 			SolutionEvaluator sEvaluator = new FillRatioEvaluator();
-			BinPackingSolver solver = new BinPackingSolver();
+			BinPackingSolver solver = BinPackingSolverFactory.getSolver();
 			testNum = orders.size();
 			Long beginTime = System.currentTimeMillis();
 			for (int i = 0; i < testNum; i++) {
@@ -270,7 +272,7 @@ public class BinPackingTest {
 				builder.append(order);
 				builder.append("$$$$$$$$$$$$$$$$$ORDER INFO$$$$$$$$$$$$$$$$$\n");
 				Long curTime = System.currentTimeMillis();
-				BinPackingSolution solution = solver.solve(order, new BinPackingConfig());
+				BinPackingSolution solution = solver.solve( new BinPackingConfig());
 				builder.append(solution);
 				Long elapseTime = System.currentTimeMillis() - curTime;
 				System.out.println("using time :" + elapseTime);
@@ -349,7 +351,7 @@ public class BinPackingTest {
 		return saleOrders;
 	}
 
-	private static void runSample1() {
+	private static void runSample1() throws BinPackingException {
 		Box box = new Box("#1", new Long[] { 5l, 7l, 6l }, 1l, 1l);
 		List<Item> items = Lists.newArrayList();
 		Item itemA = new Item("A", new Long[] { 2l, 2l, 2l }, 1l, 6l);
@@ -361,7 +363,7 @@ public class BinPackingTest {
 		BinPackingConfig config = new BinPackingConfig();
 		config.setBox(box);
 		config.setItems(items);
-		BinPackingSolver solver = new BinPackingSolver();
+		BinPackingSolver solver = BinPackingSolverFactory.getSolver();
 		BinPackingSolution solution = solver.solve(config);
 		System.out.println(solution);
 	}

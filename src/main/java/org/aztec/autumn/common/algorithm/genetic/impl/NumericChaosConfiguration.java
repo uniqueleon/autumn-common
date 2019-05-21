@@ -1,10 +1,7 @@
 package org.aztec.autumn.common.algorithm.genetic.impl;
 
-import java.lang.reflect.Proxy;
-
 import org.aztec.autumn.common.algorithm.genetic.Evaluator;
 import org.aztec.autumn.common.algorithm.genetic.advance.Classifier;
-import org.aztec.autumn.common.algorithm.genetic.osgi.EvaluatorProxy;
 
 public class NumericChaosConfiguration {
 
@@ -41,9 +38,7 @@ public class NumericChaosConfiguration {
     if (infCls.isAssignableFrom(targetObj.getClass()))
       return (T) targetObj;
     else
-      return (T) Proxy.newProxyInstance(this.getClass()
-          .getClassLoader(), new Class[] { infCls },
-          new EvaluatorProxy(targetObj));
+      return null;
   }
 
   public int getPopulation() {

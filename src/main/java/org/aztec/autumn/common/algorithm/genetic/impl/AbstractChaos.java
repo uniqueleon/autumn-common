@@ -1,108 +1,196 @@
 package org.aztec.autumn.common.algorithm.genetic.impl;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+
 import org.aztec.autumn.common.algorithm.genetic.Chaos;
 import org.aztec.autumn.common.algorithm.genetic.Evaluator;
 import org.aztec.autumn.common.algorithm.genetic.Individual;
 import org.aztec.autumn.common.algorithm.genetic.IndividualGenerator;
 import org.aztec.autumn.common.algorithm.genetic.Selector;
 import org.aztec.autumn.common.algorithm.genetic.advance.Classifier;
+import org.aztec.autumn.common.math.equations.SortableNumber;
+import org.aztec.autumn.common.math.equations.SortableNumber.Ordering;
 
-public abstract class AbstractChaos implements Chaos{
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 
-	  private Selector selector;
-	  private Classifier classifier;
-	  private Evaluator evaluator;
-	  private IndividualGenerator individualGenerator;
-	  private int populations;
-	  private int maxGeneration;
-	  private int currentGeneration;
-	  private Individual[] elites;
-	  
-	  public AbstractChaos(IndividualGenerator generator,Evaluator evaluator,Selector selector) {
-		  this.selector = selector;
-		  this.individualGenerator = generator;
-		  this.evaluator = evaluator;
-	  }
+public abstract class AbstractChaos implements Chaos {
 
-	  @Override
-	  public int getMaximumGeneration() {
-	    return maxGeneration;
-	  }
+	protected Selector selector;
+	protected Classifier classifier;
+	protected Evaluator evaluator;
+	protected IndividualGenerator individualGenerator;
+	protected int populations;
+	protected int maxGeneration;
+	protected int currentGeneration;
+	protected int retryTime = 3;
+	protected int candidateSize = 10;
+	protected Individual elite;
+	protected Individual[] elites;
+	protected boolean finished = false;
+	private Map<Integer,Individual> pool = Maps.newConcurrentMap();
+	private Queue<Individual> elitesQueue = Queues.newArrayBlockingQueue(candidateSize);
 
-	  @Override
-	  public int getPropulation() {
-	    return populations;
-	  }
+	public AbstractChaos(IndividualGenerator generator, Evaluator evaluator,
+			Selector selector) {
+		this.selector = selector;
+		this.individualGenerator = generator;
+		this.evaluator = evaluator;
+	}
 
-	  @Override
-	  public Individual[] generate() {
-	    elites = new Individual[populations];
-	    for(int i = 0;i < populations;i++){
-	        elites[i] = individualGenerator.generate();
-	    }
-	    return elites;
-	  }
+	public AbstractChaos(IndividualGenerator generator, Evaluator evaluator,
+			Selector selector, int maxGeneration, int populations) {
+		this.selector = selector;
+		this.individualGenerator = generator;
+		this.evaluator = evaluator;
+		this.maxGeneration = maxGeneration;
+		this.populations = populations;
+	}
 
-	  @Override
-	  public Individual[] generateNext(Individual[] individuals) {
+	@Override
+	public int getMaximumGeneration() {
+		return maxGeneration;
+	}
 
-	    elites = new Individual[populations];
-	    for(int i = 0;i < populations;i++){
-	      if(i < individuals.length){
-	        elites[i] = individuals[i];
-	      }
-	      else{
-	    	  elites[i] = individualGenerator.generate();
-	      }
-	    }
-	    return elites;
-	  }
+	@Override
+	public int getPropulation() {
+		return populations;
+	}
 
-	  @Override
-	  public Selector getSelector() {
-	    return selector;
-	  }
+	@Override
+	public Individual[] generate() {
+		elites = new Individual[populations];
+		for (int i = 0; i < populations; i++) {
+			elites[i] = generateNewOne();
+			if (elites[i] == null) {
+				finished = true;
+				break;
+			}
+			if (evaluator.isSatisfied(elites[i])) {
+				this.elite = elites[i];
+				break;
+			}
+		}
+		return elites;
+	}
+	
+	private Individual generateNewOne(){
+		Individual newOne = individualGenerator.generate();
+		int tmpTry = retryTime;
+		while(pool.containsKey(newOne.hashCode())){
+			newOne = individualGenerator.generate();
+			tmpTry -- ;
+			if(tmpTry < 0){
+				return getEliteFromPool();
+			}
+		}
+		pool.put(newOne.hash(), newOne);
+		return newOne;
+	}
+	
+	private Individual getEliteFromPool(){
+		if(elitesQueue.size() == 0){
+			List<SortableNumber> scores = Lists.newArrayList();
+			for(Entry<Integer,Individual> ind : pool.entrySet()){
+				scores.add(new SortableNumber(evaluator.evaluateAsDouble(ind.getValue()), ind.getKey()));
+			}
+			SortableNumber.sort(scores, Ordering.DESC);
+			int pickupSize = candidateSize > scores.size() ? scores.size() : candidateSize;
+			for(int i = 0;i < pickupSize;i++){
+				if(pool.get(scores.get(i).getIndex()) != null){
+					elitesQueue.add(pool.get(scores.get(i).getIndex()));
+				}
+			}
+		}
+		return elitesQueue.size() > 0 ? elitesQueue.poll() : null;
+	}
+	
 
-	  @Override
-	  public Evaluator getEvaluator() {
-	    return evaluator;
-	  }
+	@Override
+	public Individual[] generateNext(Individual[] individuals) {
 
-	  @Override
-	  public Classifier getClassifier() {
-	    return classifier;
-	  }
-	  
-	  @Override
-	  public boolean isFinished(Individual[] indiviuduals) {
-	    //for()
-	    return currentGeneration > maxGeneration;
-	  }
+		elites = new Individual[populations];
+		for (int i = 0; i < populations; i++) {
+			if (i < individuals.length) {
+				elites[i] = individuals[i];
+			} else {
+				elites[i] = generateNewOne();
+				if(elites[i] == null){
+					finished = true;
+					break;
+				}
+			}
+			if (evaluator.isSatisfied(elites[i])) {
+				elite = elites[i];
+				break;
+			}
+		}
+		return elites;
+	}
 
-	  @Override
-	  public Individual[] getElites() {
-	    return elites;
-	    //return selector.;
-	  }
+	@Override
+	public Selector getSelector() {
+		return selector;
+	}
 
-	  @Override
-	  public Individual getElite() {
-	    double maxScore = - Double.MAX_VALUE;
-	    int eliteIndex = -1;
-	    for(int i = 0;i < elites.length;i++){
-	      Individual individual = elites[i];
-	      double score = evaluator.evaluateAsDouble(individual);
-	      if(maxScore < evaluator.evaluateAsDouble(individual)){
-	        maxScore = score;
-	        eliteIndex = i;
-	      }
-	    }
-	    return elites[eliteIndex];
-	  }
+	@Override
+	public Evaluator getEvaluator() {
+		return evaluator;
+	}
 
-	  @Override
-	  public void setElites(Individual[] indiviuduals) {
-	    this.elites = indiviuduals;
-	  }
+	@Override
+	public Classifier getClassifier() {
+		return classifier;
+	}
+
+	@Override
+	public boolean isFinished(Individual[] indiviuduals) {
+		if(elite != null && evaluator.isSatisfied(elite)){
+			return true;
+		}
+		for (Individual ind : indiviuduals) {
+			if (evaluator.isSatisfied(ind)) {
+				elite = ind;
+				return true;
+			}
+		}
+		return currentGeneration > maxGeneration;
+	}
+
+	@Override
+	public Individual[] getElites() {
+		return elites;
+		// return selector.;
+	}
+
+	@Override
+	public Individual getElite() {
+		if (elite == null) {
+			double maxScore = -Double.MAX_VALUE;
+			int eliteIndex = -1;
+			for (int i = 0; i < elites.length; i++) {
+				Individual individual = elites[i];
+				if(individual == null){
+					continue;
+				}
+				double score = evaluator.evaluateAsDouble(individual);
+				if (maxScore < evaluator.evaluateAsDouble(individual)) {
+					maxScore = score;
+					eliteIndex = i;
+				}
+			}
+			elite = elites[eliteIndex];
+		}
+		return elite;
+	}
+
+	@Override
+	public void setElites(Individual[] indiviuduals) {
+		this.elites = indiviuduals;
+	}
 
 }

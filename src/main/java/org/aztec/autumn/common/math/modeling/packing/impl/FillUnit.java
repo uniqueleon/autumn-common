@@ -2,22 +2,24 @@ package org.aztec.autumn.common.math.modeling.packing.impl;
 
 import java.util.List;
 
-import org.aztec.autumn.common.math.modeling.packing.BaseObject;
 import org.aztec.autumn.common.math.modeling.packing.Location;
+import org.aztec.autumn.common.math.modeling.packing.RectangleObject;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 
 public class FillUnit {
-	private Long base;
+	private Long length;
+	private Long width;
 	private Long height;
-	private BaseObject belongObject;
+	private RectangleObject belongObject;
 	private Location location;
+	private Integer SurfaceChoose;
 
-	public BaseObject getBelongObject() {
+	public RectangleObject getBelongObject() {
 		return belongObject;
 	}
 
-	public void setBelongObject(BaseObject belongObject) {
+	public void setBelongObject(RectangleObject belongObject) {
 		this.belongObject = belongObject;
 	}
 
@@ -29,12 +31,20 @@ public class FillUnit {
 		this.location = location;
 	}
 
-	public Long getBase() {
-		return base;
+	public Long getLength() {
+		return length;
 	}
 
-	public void setBase(Long base) {
-		this.base = base;
+	public void setLength(Long base) {
+		this.length = base;
+	}
+
+	public Long getWidth() {
+		return width;
+	}
+
+	public void setWidth(Long height) {
+		this.width = height;
 	}
 
 	public Long getHeight() {
@@ -45,22 +55,27 @@ public class FillUnit {
 		this.height = height;
 	}
 
-
-	public FillUnit(BaseObject baseObject,Long base, Long height) {
+	public FillUnit(RectangleObject baseObject,Long base, Long height) {
 		super();
-		this.base = base;
-		this.height = height;
+		this.length = base;
+		this.width = height;
 		this.belongObject = baseObject;
 	}
 
-	
+	public FillUnit(RectangleObject baseObject,Long base, Long height,Location location) {
+		super();
+		this.length = base;
+		this.width = height;
+		this.belongObject = baseObject;
+		this.location = location;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((base == null) ? 0 : base.hashCode());
-		result = prime * result + ((height == null) ? 0 : height.hashCode());
+		result = prime * result + ((length == null) ? 0 : length.hashCode());
+		result = prime * result + ((width == null) ? 0 : width.hashCode());
 		result = prime * result + ((location == null) ? 0 : location.hashCode());
 		return result;
 	}
@@ -74,15 +89,15 @@ public class FillUnit {
 		if (getClass() != obj.getClass())
 			return false;
 		FillUnit other = (FillUnit) obj;
-		if (base == null) {
-			if (other.base != null)
+		if (length == null) {
+			if (other.length != null)
 				return false;
-		} else if (!base.equals(other.base))
+		} else if (!length.equals(other.length))
 			return false;
-		if (height == null) {
-			if (other.height != null)
+		if (width == null) {
+			if (other.width != null)
 				return false;
-		} else if (!height.equals(other.height))
+		} else if (!width.equals(other.width))
 			return false;
 		if (location == null) {
 			if (other.location != null)
@@ -95,19 +110,19 @@ public class FillUnit {
 	@Override
 	public String toString() {
 		return "FillUnit [" + (belongObject != null ? "item=" + belongObject.getId() + "," : "")
-				+ "base=" + base + ", height=" + height + ",location=" + location + "]";
+				+ "base=" + length + ", height=" + width + ",location=" + location + "]";
 	}
 
 	public FillUnit clone() {
-		FillUnit newUnit = new FillUnit(belongObject, new Long(base), new Long(height));
+		FillUnit newUnit = new FillUnit(belongObject, new Long(length), new Long(width));
 		newUnit.location = location == null ? null : location.clone();
 		return newUnit;
 	}
 
 	public boolean isMergable(FillUnit otherUnit) {
-		if ((this.location.isLinkedOnHorizontal(otherUnit.location, base)
-				|| otherUnit.location.isLinkedOnHorizontal(location, otherUnit.base))
-				&& this.height.equals(otherUnit.height)) {
+		if ((this.location.isLinkedOnHorizontal(otherUnit.location, length)
+				|| otherUnit.location.isLinkedOnHorizontal(location, otherUnit.length))
+				&& this.width.equals(otherUnit.width)) {
 			return true;
 		}
 		return false;
@@ -119,15 +134,15 @@ public class FillUnit {
 		boolean forward = location.getX() < otherUnit.getLocation().getX();
 
 		if (forward) {
-			double endPoint = otherUnit.getLocation().getX() + otherUnit.getBase();
+			double endPoint = otherUnit.getLocation().getX() + otherUnit.getLength();
 			FillUnit newUnit = new FillUnit(belongObject, new Double(endPoint - location.getX()).longValue(),
-					height.longValue());
+					width.longValue());
 			newUnit.setLocation(location.clone());
 			return newUnit;
 		} else {
-			double endPoint = location.getX() + otherUnit.getBase();
+			double endPoint = location.getX() + otherUnit.getLength();
 			FillUnit newUnit = new FillUnit(belongObject,
-					new Double(endPoint - otherUnit.getLocation().getX()).longValue(), height.longValue());
+					new Double(endPoint - otherUnit.getLocation().getX()).longValue(), width.longValue());
 			newUnit.setLocation(otherUnit.location.clone());
 			return newUnit;
 		}
@@ -166,5 +181,6 @@ public class FillUnit {
 			return mergeList;
 		}
 	}
+	
 	
 }

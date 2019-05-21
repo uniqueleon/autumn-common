@@ -6,17 +6,10 @@ import org.aztec.autumn.common.constant.unit.WeightUnits;
 
 public  class BaseObject {
 
-	/**
-	 * 空间位置，不同的形状代表不同的含义
-	 */
 	protected Location location;
-	/**
-	 * 重量
-	 */
+	
 	protected Double weight;
-	/**
-	 * 数量
-	 */
+	
 	protected Long number = 1l;
 	protected String id;
 	protected final static WeightUnits minWeightUnit = WeightUnits.G;

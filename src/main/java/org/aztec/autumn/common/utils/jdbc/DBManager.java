@@ -44,6 +44,11 @@ public class DBManager {
     conectionListener.start();
 	}
 	
+	public void disconnect() throws SQLException, ClassNotFoundException{
+		queryExec.closeConnection();
+		conectionListener.stopListener();
+	}
+	
 	public QueryExecutor reconnect(int tryTime) throws SQLException{
 		if(tryTime >= RECONNECT_TRY_TIME)
 			throw new SQLException("Reconnect try time has reach " + RECONNECT_TRY_TIME + " times!"

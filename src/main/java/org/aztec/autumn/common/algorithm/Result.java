@@ -6,4 +6,5 @@ public interface Result {
 
   public Object get();
   public Map<String,Object> getAsMap();
+  public <T> T adapt(Class<T> clazz);
 }

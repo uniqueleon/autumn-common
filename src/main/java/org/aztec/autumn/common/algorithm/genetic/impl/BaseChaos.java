@@ -17,6 +17,7 @@ public abstract class BaseChaos<T> implements Chaos {
 	protected int maxGeneration;
 	protected int currentGeneration;
 	protected int genesNum = 1;
+	boolean isFinished = false;
 	protected Individual[] elites;
 	protected IndividualGenerator generator;
 	protected TranningConfig config;
@@ -51,10 +52,10 @@ public abstract class BaseChaos<T> implements Chaos {
 	public boolean isFinished(Individual[] indiviuduals) {
 		// for()
 		Individual elite = getElite();
-		if(evaluator.isSatisfied(elite)) {
-			return true;
+		if(evaluator.isSatisfied(elite) || currentGeneration > maxGeneration) {
+			isFinished = true; 
 		}
-		return currentGeneration > maxGeneration;
+		return isFinished;
 	}
 
 	@Override
@@ -100,10 +101,14 @@ public abstract class BaseChaos<T> implements Chaos {
 		elites = new Individual[populations];
 		for (int i = 0; i < populations; i++) {
 			elites[i] = generateIndividual();
+			if(evaluator.isSatisfied(elites[i])) {
+				isFinished = true;
+				break;
+			}
 		}
 		return elites;
 	}
-
+	
 	private Individual generateIndividual() {
 		
 		return generator.generate();
@@ -118,6 +123,10 @@ public abstract class BaseChaos<T> implements Chaos {
 				elites[i] = individuals[i];
 			} else {
 				elites[i] = generateIndividual();
+			}
+			if(evaluator.isSatisfied(elites[i])){
+				isFinished = true;
+				break;
 			}
 		}
 		return elites;

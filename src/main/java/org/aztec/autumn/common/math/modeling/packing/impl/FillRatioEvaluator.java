@@ -17,10 +17,13 @@ public class FillRatioEvaluator implements SolutionEvaluator {
 		Double boxV = solution.getBox().getWidth() * solution.getBox().getHeight() * solution.getBox().getLength();
 		Double itemV = 0d;
 		List<Item> items = solution.getUsedItems();
+		Long itemCount = 0l;
 		for (Item item : items) {
+			itemCount += item.getNumber();
 			itemV += item.getNumber() * item.getWidth() * item.getHeight() * item.getLength();
 		}
-		return itemV / boxV;
+		return itemCount + (itemV / boxV);
+		//return itemCount.doubleValue();
 	}
 
 }

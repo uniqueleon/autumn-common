@@ -2,6 +2,7 @@ package org.aztec.autumn.common.math.modeling.packing;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.aztec.autumn.common.constant.unit.LengthUnits;
 import org.aztec.autumn.common.constant.unit.WeightUnits;
@@ -81,11 +82,13 @@ public class Box extends RectangleObject {
 		return true;
 	}
 	
-	public void resize(long step,boolean onlyBottom) {
+	public void resize(long step,boolean onlyBottom,boolean onlyLength) {
 		length = new Double(step * (length.longValue() / step));
-		width = new Double(step * (width.longValue() / step));
-		if(!onlyBottom) {
-			height = new Double(step * (height.longValue() / step));
+		if(!onlyLength){
+			width = new Double(step * (width.longValue() / step));
+			if(!onlyBottom) {
+				height = new Double(step * (height.longValue() / step));
+			}
 		}
 	}
 
@@ -183,7 +186,7 @@ public class Box extends RectangleObject {
 	public boolean isMergable(Box otherBox) {
 		Location otherLoc = otherBox.getLocation();
 		if(((location.isLinkedOnHorizontal(otherLoc, length.longValue()) && getWidth().equals(otherBox.getWidth())) ||
-				(location.isLinkedOnVertical(otherLoc, length.longValue()) && getLength().equals(otherBox.getLength())))
+				(location.isLinkedOnVertical(otherLoc, width.longValue()) && getLength().equals(otherBox.getLength())))
 				&& this.height.equals(otherBox.getHeight())) {
 			return true;
 		}
@@ -192,32 +195,96 @@ public class Box extends RectangleObject {
 	
 	
 	public boolean isFillable(Item item) {
-		List<Long> sortEdges = Lists.newArrayList();
-		sortEdges.add(item.getWidthAsLong());
-		sortEdges.add(item.getHeightAsLong());
-		sortEdges.add(item.getLengthAsLong());
-		Collections.sort(sortEdges);
-		Long[] itemEdges = sortEdges.toArray(new Long[3]);
-		sortEdges = Lists.newArrayList();
-
-		sortEdges.add(getWidthAsLong());
-		sortEdges.add(getHeightAsLong());
-		sortEdges.add(getLengthAsLong());
-		Collections.sort(sortEdges);
-		Long[] boxEgdes = sortEdges.toArray(new Long[3]);
-		boolean fillable = true;
-		for(int i = 0 ;i < boxEgdes.length;i++) {
-			if(boxEgdes[i] < itemEdges[i]) {
-				return false;
+		
+		if(item.getSurfaceChoosed() != null){
+			if(item.getChoosedHeight() <= getHeight()){
+				Double[][] surfaceDatas = item.getChoosedSurfaceData();
+				for(Double[] surfaceData : surfaceDatas){
+					if(surfaceData[0] <= getLength() && 
+							surfaceData[1] <= getWidth()){
+						return true;
+					}
+				}
 			}
+			return false;
 		}
-		return fillable;
+		else{
+
+			List<Long> sortEdges = Lists.newArrayList();
+			sortEdges.add(item.getWidthAsLong());
+			sortEdges.add(item.getHeightAsLong());
+			sortEdges.add(item.getLengthAsLong());
+			Collections.sort(sortEdges);
+			Long[] itemEdges = sortEdges.toArray(new Long[3]);
+			sortEdges = Lists.newArrayList();
+
+			sortEdges.add(getWidthAsLong());
+			sortEdges.add(getHeightAsLong());
+			sortEdges.add(getLengthAsLong());
+			Collections.sort(sortEdges);
+			Long[] boxEgdes = sortEdges.toArray(new Long[3]);
+			boolean fillable = true;
+			for(int i = 0 ;i < boxEgdes.length;i++) {
+				if(boxEgdes[i] < itemEdges[i]) {
+					return false;
+				}
+			}
+			return fillable;
+		}
+	}
+	
+	public Item getRandomMultipleFillItem(Random random,int shape,Item fillItem){
+		Item mergedItem = fillItem.clone();
+		mergedItem.setNumber(0l);
+		Double[] edges = fillItem.getShapeData(shape);
+		mergedItem.setLength(edges[0]);
+		mergedItem.setWidth(edges[1]);
+		mergedItem.setHeight(edges[2]);
+		int direction = random.nextInt(3);
+		int numLimit = 1;
+		switch(direction){
+		case 0:
+			numLimit = new Double(Math.floor(length / edges[0])).intValue();
+			break;
+		case 1:
+			numLimit = new Double(Math.floor(width / edges[1])).intValue();
+			break;
+		case 2:
+			numLimit = new Double(Math.floor(height / edges[2])).intValue();
+			break;
+		}
+		if(numLimit > fillItem.getNumber().intValue()){
+			numLimit = fillItem.getNumber().intValue();
+		}
+		if(numLimit == 0){
+			return null;
+		}
+		//int fillNum = numLimit;
+		int fillNum = random.nextInt(numLimit + 1);
+		while(fillNum  == 0){
+			fillNum = random.nextInt(numLimit + 1);
+		}
+		switch(direction){
+		case 0:
+			mergedItem.setLength(edges[0] * fillNum);
+			break;
+		case 1:
+			mergedItem.setWidth(edges[1] * fillNum);
+			break;
+		case 2:
+			mergedItem.setHeight(edges[2] * fillNum);
+			break;
+		}
+		mergedItem.setLocation(location.clone());
+		mergedItem.setNumber(fillNum + 0l);
+		mergedItem.setShape(shape);
+		return mergedItem;
 	}
 
 	@Override
 	public String toString() {
-		return "Box [id=" + id + ", number=" + number + ", length=" + length + ", width="
-				+ width + ", height=" + height + ", location=" + location + ", weight=" + weight + ",bearing=" + bearing + " ]";
+		return "Box [id=" + id + ", number=" + number + ", shape=[" + length + ", "
+				+ width + ", " + height + "], location=" + location + ", weight=" + weight + ",bearing=" + bearing + " ]";
 	}
 	
 	

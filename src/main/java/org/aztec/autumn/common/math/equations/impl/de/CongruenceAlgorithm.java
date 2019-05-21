@@ -27,7 +27,7 @@ public class CongruenceAlgorithm extends BaseConstraintDEAlgorithm implements Co
 	private List<Long> findSolutionInSpecialWay(Long[] factors, Long result, Long[][] ranges) {
 		List<SortableNumber> numbers = SortableNumber.sort(factors, Ordering.ASC);
 		SortableNumber targetNumber = numbers.get(0);
-		Long modular = targetNumber.getNumber();
+		Long modular = targetNumber.getNumber().longValue();
 		List<Long> possibleSolution = Lists.newArrayList();
 		Long tmpResult = result;
 		setContextObject(ContextKeys.MODULAR, modular);
@@ -65,28 +65,12 @@ public class CongruenceAlgorithm extends BaseConstraintDEAlgorithm implements Co
 		Long finalSolution = tempResult / modular;
 		if (tempResult % modular == 0 && finalSolution <= ranges[targetIndex][1]
 				&& finalSolution >= ranges[targetIndex][0]
-						&& isSolutionOrdered(targetIndex,finalSolution,solutions)) {
+						&& isValid(round, factors, result, solutions, finalSolution, ranges)) {
 			solutions.set(targetIndex, finalSolution);
 			return solutions;
 		} else {
 			return null;
 		}
-	}
-	
-	private boolean isSolutionOrdered(int targetIndex,Long testSolution,List<Long> solutions) {
-
-		boolean isOrdered = isOrdered();
-		if(!isOrdered)
-			return true;
-		Long beforeSolution = Long.MIN_VALUE;
-		Long afterSolution = Long.MAX_VALUE;
-		if(targetIndex != solutions.size() - 1) {
-			afterSolution = solutions.get(targetIndex + 1);
-		}
-		if(targetIndex != 0) {
-			beforeSolution = solutions.get(targetIndex - 1);
-		}
-		return testSolution > beforeSolution && testSolution < afterSolution;
 	}
 	
 

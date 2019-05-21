@@ -7,7 +7,7 @@ import org.aztec.autumn.common.math.equations.ConstrainedDEAlgorithm;
 import com.google.common.collect.Lists;
 
 /**
- * 简单穷举法
+ * 绠�鍗曠┓涓炬硶
  * @author 10064513
  *
  */

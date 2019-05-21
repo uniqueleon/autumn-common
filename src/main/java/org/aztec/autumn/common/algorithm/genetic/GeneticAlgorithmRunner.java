@@ -16,13 +16,6 @@ import org.aztec.autumn.common.algorithm.genetic.advance.Classifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
-/**
- * 遗传算法运算器
- * @author 黎明
- *
- */
 public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,Progress{
 
   private Chaos chaos;
@@ -44,9 +37,6 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
     }
   }
 
-  /**
-   * 主方法执行
-   */
   @Override
   public void execute() throws GeneticAlgorithmException {
     
@@ -58,20 +48,8 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
       generation = nextGeneration(generation);
       LOG.info("Generate finished!!");
     }
-    List<Individual> elites = Lists.newArrayList();
-    Evaluator evaluator = chaos.getEvaluator();
-    for(Individual ind : generation) {
-    	if(evaluator.isSatisfied(ind)) {
-    		elites.add(ind);
-    	}
-    }
-    chaos.setElites(elites.toArray(new Individual[elites.size()]));
   }
   
-  /**
-   * 初始化种群
-   * @return
-   */
   private Individual[] init(){
     currentPhase = GeneticAlgorithmPhases.INITIALIZE;
     Individual[] firstGeneration = chaos.generate();
@@ -85,24 +63,20 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
     return firstGeneration;
   }
   
-  /**
-   * 生成下一代种群
-   * @param population
-   * @return
-   * @throws GeneticAlgorithmException
-   */
   private Individual[] nextGeneration(Individual[] population) throws GeneticAlgorithmException{
+	Long curTime = System.currentTimeMillis();
     population = select(population);
+    LOG.debug("select use:" + (System.currentTimeMillis() - curTime));
+	curTime = System.currentTimeMillis();
     population = couple(population);
+    LOG.debug("couple use:" + (System.currentTimeMillis() - curTime));
+	curTime = System.currentTimeMillis();
     population = rebuildPopulation(population);
+    LOG.debug("rebuild use:" + (System.currentTimeMillis() - curTime));
+	curTime = System.currentTimeMillis();
     return population;
   }
   
-  /**
-   * 交配繁殖，交配原则为一夫一妻制
-   * @param population
-   * @return
-   */
   private Individual[] couple(Individual[] population){
     currentPhase = GeneticAlgorithmPhases.COUPLE;
     List<Individual> newIndividuals = new ArrayList<Individual>();
@@ -110,7 +84,7 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
     for(int i = 0;i < population.length;i++){
       if(selectedIndividuals.containsKey(i))
         continue;
-      //防止死循环
+      //闂冨弶顒涘璇叉儕閻滐拷
       if(population.length % 2 == 1 
           && selectedIndividuals.size() != 1 
           && population.length - selectedIndividuals.size() == 1){
@@ -135,12 +109,6 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
     return newIndividuals.toArray(new Individual[newIndividuals.size()]);
   }
   
-  /**
-   * 自然选择
-   * @param population
-   * @return
-   * @throws GeneticAlgorithmException
-   */
   private Individual[] select(Individual[] population) throws GeneticAlgorithmException{
 
     currentPhase = GeneticAlgorithmPhases.SELECT;
@@ -148,11 +116,6 @@ public class GeneticAlgorithmRunner implements AlgorithmRunner,AlgorithmMonitor,
     return selector.select(population, chaos.getEvaluator());
   }
 
-  /**
-   * 重建种群，以避免经过选择后，种群个体骤降
-   * @param population
-   * @return
-   */
   private Individual[] rebuildPopulation(Individual[] population){
     Classifier classifier = chaos.getClassifier();
     Individual[] newPopulation = population.clone();

@@ -99,4 +99,11 @@ public class NumericVectorIndividual implements Individual {
 		return (T) this;
 	return null;
   }
+
+@Override
+public Integer hash() {
+	// TODO Auto-generated method stub
+	return hashCode();
+}
+
 }

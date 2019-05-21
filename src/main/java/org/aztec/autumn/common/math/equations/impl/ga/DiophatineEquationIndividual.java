@@ -53,4 +53,10 @@ public class DiophatineEquationIndividual extends BaseIndividual implements Indi
 		return solutions;
 	}
 
+	@Override
+	public Integer hash() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

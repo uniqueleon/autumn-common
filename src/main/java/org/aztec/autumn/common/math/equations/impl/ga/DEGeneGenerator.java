@@ -68,7 +68,7 @@ public class DEGeneGenerator implements GeneGenerator{
 			}
 			List<SortableNumber> sortNumbers = SortableNumber.sort(otherFactors, Ordering.ASC);
 			for(int i = 1; i < factorLimits.length;i++) {
-				if(sortNumbers.get(i - 1).getNumber() > factorLimits[i]) {
+				if(sortNumbers.get(i - 1).getNumber().longValue() > factorLimits[i]) {
 					chooseIndex = RandomUtils.nextInt(factors[index].length);
 					maxTryTime --;
 					factor = null;
@@ -89,7 +89,7 @@ public class DEGeneGenerator implements GeneGenerator{
 		List<SortableNumber> sortLimits = 
 				SortableNumber.sort(factorLimits, Ordering.ASC);
 		for(int i = 0;i < sortLimits.size();i++) {
-			if(sortNumbers.get(i).getNumber() > sortLimits.get(i).getNumber()) {
+			if(sortNumbers.get(i).getNumber().longValue() > sortLimits.get(i).getNumber().longValue()) {
 				return false;
 			}
 		}

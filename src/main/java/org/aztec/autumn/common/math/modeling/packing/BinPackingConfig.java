@@ -8,10 +8,20 @@ public class BinPackingConfig {
 	
 	private List<Item> items;
 	private Box box;
+	private SaleOrder order;
 	private Integer minimumCombines = 1;
 	private Integer satisfiedValve;
-	private Long maxExhaustionTolerant = MathConstant.MAX_EXHAUTION_TOLERANT;
-	private Integer level1TryTime = 200;
+	//private Long maxExhaustionTolerant = 1000l;
+	private double speed = 1 ;
+	private int populations;
+	
+	public Long getItemTotalCount(){
+		Long count = 0l;
+		for(Item item : items){
+			count += item.getNumber();
+		}
+		return count;
+	}
 
 	public BinPackingConfig() {
 		// TODO Auto-generated constructor stub
@@ -49,29 +59,45 @@ public class BinPackingConfig {
 		this.satisfiedValve = satisfiedValve;
 	}
 
-	public Long getMaxExhaustionTolerant() {
-		return maxExhaustionTolerant;
-	}
-
-	public void setMaxExhaustionTolerant(Long maxExhaustionTolerant) {
-		this.maxExhaustionTolerant = maxExhaustionTolerant;
-	}
-
 	public Integer getLevel1TryTime() {
-		return level1TryTime;
+		return new Double( MathConstant.MAX_EXHAUTION_TOLERANT * speed).intValue();
 	}
 
-	public void setLevel1TryTime(Integer level1TryTime) {
-		this.level1TryTime = level1TryTime;
-	}
 
-	public BinPackingConfig(List<Item> items, Box box, Integer minimumCombines,Integer satifiedValve) {
+	public BinPackingConfig(List<Item> items, Box box, Double speed) {
 		super();
 		this.items = items;
 		this.box = box;
-		this.minimumCombines = minimumCombines;
-		this.satisfiedValve = satifiedValve;
+		this.speed = speed;
 	}
 
+	
+	public BinPackingConfig(SaleOrder order){
+		
+	}
+
+	public double getSpeed() {
+		return speed;
+	}
+
+	public void setSpeed(double speed) {
+		this.speed = speed;
+	}
+
+	public SaleOrder getOrder() {
+		return order;
+	}
+
+	public void setOrder(SaleOrder order) {
+		this.order = order;
+	}
+
+	public int getPopulations() {
+		return populations;
+	}
+
+	public void setPopulations(int populations) {
+		this.populations = populations;
+	}
 	
 }

@@ -12,6 +12,14 @@ public class ConstraintedDiophantineEquation {
 	
 	public final static Map<RunningMode,ConstrainedDEAlgorithm> algorithms = new HashMap<>();
 	
+	public static interface RUNNING_PARAMETERS{
+		public static final String CUSTORMERIZED_VALIDATOR = "customerValidator";
+		public static final String NEIGHBORHOOD = "neighborhoods";
+		public static final String DEFAULT_TIME_OUT = "timeout";
+	}
+	
+
+	
 	static {
 		algorithms.put(RunningMode.SIMPLE, new SimpleAlgorithm());
 		//algorithms.put(RunningMode.LARGE_SCALE, new CongruenceAlgorithm2());
@@ -81,5 +89,97 @@ public class ConstraintedDiophantineEquation {
 			possibleSolution = algorithm.findSolutions(factors, result, ranges,new ArrayList<Long>(), size);
 		}
 		return possibleSolution;
+	}
+	
+
+	public static List<List<Long>> findSolution(CalculatingParameter calParams) {
+		List<List<Long>> possibleSolution = null;
+		ConstrainedDEAlgorithm algorithm = algorithms.get(calParams.getRunMode());
+		
+		if (algorithm != null) {
+			if(calParams.getValidatorIndexes() != null){
+				algorithm.setContext(RUNNING_PARAMETERS.CUSTORMERIZED_VALIDATOR, calParams.getValidatorIndexes());
+				algorithm.setContext(RUNNING_PARAMETERS.NEIGHBORHOOD, calParams.getGroupData());
+				algorithm.setContext(RUNNING_PARAMETERS.DEFAULT_TIME_OUT, calParams.getTimeout());
+				
+			}
+			possibleSolution = algorithm.findSolutions(calParams.getFactors(), calParams.getResult(), 
+					calParams.getRanges(),new ArrayList<Long>(), calParams.getSize());
+		}
+		return possibleSolution;
+	}
+	
+	
+
+	public static class CalculatingParameter{
+		private Long[] factors;
+		private Long result;
+		private Long[][] ranges;
+		private RunningMode runMode;
+		private int size;
+		private int[] validatorIndexes;
+		private int[] groupData;
+		private Long timeout = 10l;
+		//private Long timeout = null;
+		public Long[] getFactors() {
+			return factors;
+		}
+		public void setFactors(Long[] factors) {
+			this.factors = factors;
+		}
+		public Long getResult() {
+			return result;
+		}
+		public void setResult(Long result) {
+			this.result = result;
+		}
+		public Long[][] getRanges() {
+			return ranges;
+		}
+		public void setRanges(Long[][] ranges) {
+			this.ranges = ranges;
+		}
+		public RunningMode getRunMode() {
+			return runMode;
+		}
+		public void setRunMode(RunningMode runMode) {
+			this.runMode = runMode;
+		}
+		public int getSize() {
+			return size;
+		}
+		public void setSize(int size) {
+			this.size = size;
+		}
+		public int[] getValidatorIndexes() {
+			return validatorIndexes;
+		}
+		public int[] getGroupData() {
+			return groupData;
+		}
+		public void setGroupData(int[] groupData) {
+			this.groupData = groupData;
+		}
+		public void setValidatorIndexes(int[] validatorIndexes) {
+			this.validatorIndexes = validatorIndexes;
+		}
+		
+		public Long getTimeout() {
+			return timeout;
+		}
+		public void setTimeout(Long timeout) {
+			this.timeout = timeout;
+		}
+		public CalculatingParameter(Long[] factors, Long result, Long[][] ranges,
+				RunningMode runMode,int solutionSize) {
+			super();
+			this.factors = factors;
+			this.result = result;
+			this.ranges = ranges;
+			this.runMode = runMode;
+			this.size = solutionSize;
+		}
+		
+		
 	}
 }

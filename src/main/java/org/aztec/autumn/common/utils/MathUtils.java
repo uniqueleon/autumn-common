@@ -6,6 +6,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Stack;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.aztec.autumn.common.math.EulerFunction;
 import org.aztec.autumn.common.math.MathException;
 import org.aztec.autumn.common.math.MathException.GeneralErrorCode;
@@ -448,6 +449,89 @@ public class MathUtils {
 			}
 		}
 		return pseudoPrimes;
+	}
+	
+
+	public static List<Integer> getRandomPermutation(List<Integer> indexes,int size,int[] limits
+			,List<Integer> histories){
+		List<Integer> newIndexes = Lists.newArrayList();
+		double maxSize = 1;
+		int count = 0;
+		for(int i = 0;i < limits.length;i++){
+			maxSize *= limits[i];
+		}
+		if(histories.size() >= maxSize){
+			return null;
+		}
+		if(indexes == null || indexes.size() != size) {
+			for(int i = 0;i < size;i++) {
+				newIndexes.add(0);
+			}
+			return newIndexes;
+		}
+		else {
+			for(int i = 0;i < indexes.size();i++){
+				newIndexes.add(RandomUtils.nextInt(limits[i]));
+			}
+			if(histories.contains(newIndexes.hashCode())){
+				newIndexes.clear();
+				for(int i = 0;i < indexes.size();i++){
+					newIndexes.add(RandomUtils.nextInt(limits[i]));
+				}
+				count++;
+				if(count > maxSize){
+					return null;
+				}
+			}
+		}
+		return newIndexes;
+	}
+	
+	public static List<Integer> getRandomCombination(List<Integer> indexes,int size,int[] limits
+			,List<Integer> histories){
+		List<Integer> newIndexes = Lists.newArrayList();
+		double maxSize = 1;
+		int count = 0;
+		for(int i = 0;i < limits.length;i++){
+			maxSize *= limits[i];
+		}
+		if(histories.size() >= maxSize){
+			return null;
+		}
+		if(indexes == null || indexes.size() != size) {
+			for(int i = 0;i < size;i++) {
+				Integer num = RandomUtils.nextInt(limits[i]);
+				while(newIndexes.contains(num)){
+					num = RandomUtils.nextInt(limits[i]);
+				}
+				newIndexes.add(num);
+			}
+			return newIndexes;
+		}
+		else {
+			for(int i = 0;i < indexes.size();i++){
+				Integer num = RandomUtils.nextInt(limits[i]);
+				while(newIndexes.contains(num)){
+					num = RandomUtils.nextInt(limits[i]);
+				}
+				newIndexes.add(num);
+			}
+			if(histories.contains(newIndexes.hashCode())){
+				newIndexes.clear();
+				for(int i = 0;i < indexes.size();i++){
+					Integer num = RandomUtils.nextInt(limits[i]);
+					while(newIndexes.contains(num)){
+						num = RandomUtils.nextInt(limits[i]);
+					}
+					newIndexes.add(num);
+				}
+				count++;
+				if(count > maxSize){
+					return null;
+				}
+			}
+		}
+		return newIndexes;
 	}
 
 	public static List<Integer> findFibonacciNumber(int upperLimit) {

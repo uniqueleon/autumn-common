@@ -7,6 +7,7 @@ public class BinPackingException extends Exception {
 	public static interface ErrorCodes{
 		public static final int FILL_OBJECT_TO_HIGH = 0;
 		public static final int PATH_HAS_BEEN_SEARCH_BEFORE = 1;
+		public static final int SOLUTION_NOT_FOUND = 2;
 	}
 
 	public BinPackingException() {

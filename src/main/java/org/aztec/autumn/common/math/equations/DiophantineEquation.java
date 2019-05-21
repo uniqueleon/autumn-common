@@ -3,6 +3,8 @@ package org.aztec.autumn.common.math.equations;
 import java.util.List;
 import java.util.Map;
 
+import org.aztec.autumn.common.math.equations.ConstraintedDiophantineEquation.CalculatingParameter;
+import org.aztec.autumn.common.math.equations.ConstraintedDiophantineEquation.RunningMode;
 import org.aztec.autumn.common.math.equations.DESolutionConstraint.DESolutionConstraintType;
 import org.aztec.autumn.common.math.equations.DiophantineResult.SpecialDiophantineEquationClass;
 
@@ -193,6 +195,26 @@ public class DiophantineEquation {
 		}
 		return resultList;
 	}
-	
+
+	public static List<List<Long>> getConstraintedSolutions(Long[] factors,
+			Long result, Long[][] ranges, int solutionSize,
+			int[] validatorIndex, int[] groupData) {
+		if(factors.length == 1){
+			List<List<Long>> solutions = Lists.newArrayList();
+			if(result % factors[0] == 0){
+				List<Long> solution = Lists.newArrayList();
+				solution.add(result / factors[0]);
+				solutions.add(solution);
+			}
+			return solutions;
+		}
+		CalculatingParameter calParam = new CalculatingParameter(factors,
+				result, ranges, RunningMode.CONGRUENCE, solutionSize);
+		calParam.setValidatorIndexes(validatorIndex);
+		calParam.setGroupData(groupData);
+		List<List<Long>> solution = ConstraintedDiophantineEquation
+				.findSolution(calParam);
+		return solution;
+	}
 	
 }

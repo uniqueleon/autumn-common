@@ -42,7 +42,7 @@ public class Location {
 	
 	public boolean isLinkedOnHorizontal(Location location2,Long distance) {
 		if(this.getY().equals(location2.getY()) && 
-				(Math.abs(location2.getX() - getX())) >= distance) {
+				(Math.abs(location2.getX() - getX())) <= distance) {
 			return true;
 		}
 		return false;
