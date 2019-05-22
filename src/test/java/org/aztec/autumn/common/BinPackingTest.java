@@ -49,7 +49,7 @@ public class BinPackingTest {
 		// LBX0329941778510906
 		// runCaoLiaoSample(1,"LBX0329941778476144");
 		// runCaoLiaoSample(1,"LBX0329941778510906");
-		// runCaoLiaoSample(1,"LBX0329941778510906");
+		 
 		// String testStr =
 		// "xxxefqewfqwfewfeqwfeqcqcfqewxfqewxfwqefxqefefweffqxqewxfqwexwfx@#$&^&*";
 
@@ -57,7 +57,8 @@ public class BinPackingTest {
 		// runCaoLiaoSample(1, null);
 		// runTestBugCase();
 		try {
-			compareResult();
+			runCaoLiaoSample(1,"LBX0329941778510906");
+			//compareResult();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -272,7 +273,9 @@ public class BinPackingTest {
 				builder.append(order);
 				builder.append("$$$$$$$$$$$$$$$$$ORDER INFO$$$$$$$$$$$$$$$$$\n");
 				Long curTime = System.currentTimeMillis();
-				BinPackingSolution solution = solver.solve( new BinPackingConfig());
+				BinPackingConfig config = new BinPackingConfig(order.getItems(), order.getSelectableBoxes().get(0), 1d);
+				config.setOrder(order);
+				BinPackingSolution solution = solver.solve( config);
 				builder.append(solution);
 				Long elapseTime = System.currentTimeMillis() - curTime;
 				System.out.println("using time :" + elapseTime);
