@@ -1,8 +1,9 @@
 package org.aztec.autumn.common.utils;
 
 import java.io.InputStream;
+import java.util.Map;
 
-import org.aztec.autumn.common.CommonConfig;
+import org.aztec.autumn.common.utils.cache.RedisConnectionConfig;
 import org.aztec.autumn.common.utils.cache.RedisUtil;
 import org.aztec.autumn.common.utils.code.QRcodeUtils;
 import org.aztec.autumn.common.utils.code.ZxingCodeUtil;
@@ -19,10 +20,13 @@ import org.aztec.autumn.common.utils.xml.XMLReaderFactoryImpl;
 import org.aztec.autumn.common.utils.xml.XMLUtils;
 import org.aztec.autumn.common.utils.xml.XMLUtilsImpl;
 
+import com.google.common.collect.Maps;
+
 public class UtilsFactory {
 	
 	private static UtilsFactory singleton = new UtilsFactory();
 	private static JacksonUtils jsonUtils = new JacksonUtils();
+	private Map<String,RedisUtil> cacheUtilsCache = Maps.newConcurrentMap();
 	
 	private UtilsFactory(){
 		
@@ -44,23 +48,41 @@ public class UtilsFactory {
 		return new ZxingCodeUtil();
 	}
 	
+	private String getCacheUtilKey(String[] hosts,Integer[] port) {
+		StringBuilder builder = new StringBuilder();
+		for(String host : hosts) {
+			builder.append(host + ":" + port + "_");
+		}
+		return builder.toString();
+	}
+	
+	private CacheUtils getCacheUtils(String[] hosts,Integer[] port,String password) {
+		String cacheKey = getCacheUtilKey(hosts, port);
+		if(cacheUtilsCache.containsKey(cacheKey)) {
+			return cacheUtilsCache.get(cacheKey);
+		}
+		else {
+			RedisUtil redis = new RedisUtil(hosts, port);
+			if(password != null) {
+				redis.setPassword(password);
+			}
+			redis.connect();
+			return redis;
+		}
+	}
+	
 	public CacheUtils getCacheUtils(String cacheServer,Integer port){
-		RedisUtil redis = new RedisUtil(cacheServer, port);
-		redis.connect();
-		return redis;
+		return getCacheUtils(new String[] {cacheServer}, new Integer[] {port}, null);
 	}
 	
 	public CacheUtils getCacheUtils(String cacheServer,Integer port,String password){
-		RedisUtil redis = new RedisUtil(cacheServer, port);
-		redis.setPassword(password);
-		redis.connect();
-		return redis;
+		return getCacheUtils(new String[] {cacheServer}, new Integer[] {port}, password);
 	}
 	
-	public CacheUtils getDefaultCacheUtils(){
-		CommonConfig config = new CommonConfig();
-		String[] cacheServer = config.getRedisHost().split(",");
-		String[] cachePortArr = config.getRedisPort().split(",");
+	public CacheUtils getDefaultCacheUtils() throws Exception{
+		RedisConnectionConfig config = new RedisConnectionConfig();
+		String[] cacheServer = config.getHosts().split(",");
+		String[] cachePortArr = config.getPorts().split(",");
 		Integer[] ports = new Integer[cachePortArr.length];
 		for(int i = 0;i < cachePortArr.length;i++){
 			ports[i] = Integer.parseInt(cachePortArr[i]);
@@ -69,15 +91,9 @@ public class UtilsFactory {
 	}
 	
 	public CacheUtils getCacheUtils(String[] cacheServers,Integer[] ports){
-		return new RedisUtil(cacheServers, ports);
+		return getCacheUtils(cacheServers, ports, null);
 	}
 	
-	public CacheUtils getCacheUtils(String[] cacheServers,Integer[] ports,String password){
-		RedisUtil redis = new RedisUtil(cacheServers, ports);
-		redis.setPassword(password);
-		redis.connect();
-		return redis;
-	}
 	
 	public CacheUtils getCacheUtils(String cacheServer,String ports){
 		if(!cacheServer.contains(",")){

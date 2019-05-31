@@ -25,12 +25,19 @@ public abstract class BasePropertiesConfig {
 	private String filePath;
 	private static Logger LOG = LoggerFactory.getLogger(BasePropertiesConfig.class);
 	private static final String DEFAULT_SEPERATE_CHAR = ",";
+	public static final String DEFAUTL_SYSTEM_PROPERTY_FILE = "AUTUMN_SYS_PROPS_FILE";
 	
 	public BasePropertiesConfig(String propFilePath) {
 		// TODO Auto-generated constructor stub
-
-		this.filePath = propFilePath;
+		
+		if(filePath.equals("system")) {
+			filePath = System.getProperty(DEFAUTL_SYSTEM_PROPERTY_FILE);
+		}
+		else {
+			this.filePath = propFilePath;
+		}
 		loadFile();
+		init();
 	}
 	
 	protected void loadFile(){
@@ -57,10 +64,12 @@ public abstract class BasePropertiesConfig {
 	
 	public BasePropertiesConfig(){
 		loadFile();
+		init();
 	}
 	
 	protected void reload() {
 		loadFile();
+		init();
 	}
 	
 	protected void init(){

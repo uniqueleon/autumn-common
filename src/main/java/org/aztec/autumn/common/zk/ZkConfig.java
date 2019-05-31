@@ -50,6 +50,7 @@ public class ZkConfig extends ZkNode {
 
 		case PROPERTIES:
 			writeContent = getAsPropertiesLine();
+			break;
 		default:
 			break;
 		}

@@ -3,8 +3,10 @@ package org.aztec.autumn.common.utils.cache;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.aztec.autumn.common.utils.CacheException;
 import org.aztec.autumn.common.utils.CacheUtils;
 import org.aztec.autumn.common.utils.JsonUtils;
@@ -12,10 +14,14 @@ import org.aztec.autumn.common.utils.UtilsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCommands;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class RedisUtil implements CacheUtils{
@@ -25,16 +31,15 @@ public class RedisUtil implements CacheUtils{
 	private static boolean isStarted = false;
 	private List<String> hosts = new ArrayList<>();
 	private List<Integer> ports = new ArrayList<>();
+	private List<JedisPool> pools = Lists.newArrayList();
 	//private static ThreadLocal<JedisCommands> redisClient = new ThreadLocal<>();
 	//private static JedisCommands redisClient;
 	private JedisCommands redisClient;
 	private static final int DEFAULT_RETRY_TIME = 3;
 	private String password = null;
+	private static final Map<String,Object> locks = Maps.newConcurrentMap();
+	private static LockChecker checker = null;
 	
-	//private CommonConfig config = new CommonConfig();
-	/*private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
-	private final Lock rLock = rwl.readLock();
-	private final Lock wLock = rwl.writeLock();*/
 
 	public RedisUtil(String host,Integer port){
 		this.hosts.add(host);
@@ -63,9 +68,11 @@ public class RedisUtil implements CacheUtils{
 		for(Integer port : ports){
 			this.ports.add(port);
 		}
+		
 	}
 	
 	public void connect(){
+		pools = Lists.newArrayList();
 		if(redisClient == null){
 			if(hosts.size() == 1){
 				Jedis jc = new Jedis(hosts.get(0), ports.get(0));
@@ -74,11 +81,15 @@ public class RedisUtil implements CacheUtils{
 				redisClient = jc;
 				//redisClient.set(jc);
 				isStarted = true;
+				JedisPool pool = new JedisPool(hosts.get(0), ports.get(0));
+				pools.add(pool);
 			}
 			else{
 				Set<HostAndPort> clusterConfig = new HashSet<>();
 				for (int i = 0; i < hosts.size(); i++) {
 					clusterConfig.add(new HostAndPort(hosts.get(i), ports.get(i)));
+					JedisPool pool = new JedisPool(hosts.get(i), ports.get(i));
+					pools.add(pool);
 				}
 				JedisCluster jc = new JedisCluster(clusterConfig);
 				if(password != null && !password.isEmpty())
@@ -87,6 +98,17 @@ public class RedisUtil implements CacheUtils{
 				redisClient = jc;
 				isStarted = true;
 			}
+		}
+		startLockChecker();
+	}
+	
+	private synchronized void startLockChecker() {
+		if(checker == null) {
+			checker = new LockChecker();
+			Thread lockChkThread = new Thread(checker);
+			lockChkThread.setName("Redis util lock check Thread");
+			lockChkThread.setDaemon(true);
+			lockChkThread.start();
 		}
 	}
 	
@@ -155,7 +177,7 @@ public class RedisUtil implements CacheUtils{
 				return null;
 			String value = redisClient.get(key);
 			//String value = redisClient.get().get(key);
-			if(value == null || value.isEmpty())
+			if(value == null)
 				return null;
 			if (retType.equals(String.class)) {
 				return (T) value;
@@ -197,6 +219,88 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public void cacheInTTL(String key, Object value, int seconds) throws CacheException {
 		cache(key, value, seconds, DEFAULT_RETRY_TIME);
+		
+	}
+
+	@Override
+	public void publish(String channel, String msg) throws CacheException {
+		
+		int randomIndex = RandomUtils.nextInt(pools.size() + 1);
+		while (randomIndex == 0) {
+			randomIndex = RandomUtils.nextInt(pools.size() + 1);
+		}
+		Jedis jedis = pools.get(randomIndex).getResource();
+		jedis.publish(channel, msg);
+		jedis.close();
+	}
+
+	@Override
+	public void subscribe(CacheDataSubscriber subscriber,String...channel) throws CacheException {
+		for(JedisPool pool : pools) {
+			Jedis jedis = pool.getResource();
+			jedis.subscribe(new DefaultSubscriber(subscriber), channel);
+		}
+	}
+
+	@Override
+	public void lock(String key) throws CacheException {
+		Long ret = redisClient.setnx(key, "lock");
+		if(ret == 0) {
+			Object lockObj = locks.get(key);
+			if(lockObj == null) {
+				synchronized (locks) {
+					if(lockObj == null) {
+						lockObj = new Object();
+						locks.put(key, lockObj);
+					}
+				}
+			}
+			try {
+				lockObj.wait();
+				lock(key);
+			} catch (InterruptedException e) {
+				throw new CacheException(e.getMessage(), e);
+			}
+		}
+	}
+
+	@Override
+	public boolean tryLock(String key) throws CacheException {
+		Long ret = redisClient.setnx(key, "lock");
+		return ret == 1;
+	}
+
+	@Override
+	public void unlock(String key) throws CacheException {
+		redisClient.del(key);
+		Object lockObj = locks.get(key);
+		if(lockObj != null) {
+			lockObj.notifyAll();
+		}
+		locks.remove(key);
+	}
+	
+	private class LockChecker implements Runnable{
+		private boolean runnable = true;
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			try {
+				while(runnable) {
+					for(String lockKey : locks.keySet()) {
+						if(redisClient.get(lockKey) == null) {
+							locks.get(lockKey).notifyAll();
+							locks.remove(lockKey);
+						}
+					}
+					Thread.currentThread().sleep(10);
+				}
+			} catch (Exception e) {
+				LOG.error(e.getMessage(),e);
+			}
+		}
+		
 		
 	}
 

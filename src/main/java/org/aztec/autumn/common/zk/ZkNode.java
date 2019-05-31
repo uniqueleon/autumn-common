@@ -31,7 +31,9 @@ public abstract class ZkNode implements DataMonitorListener{
 		zk = ZkConnector.getKeeper();
 		this.dataID = dataID;
 		znode = dataID.replace(".", "/");
-		znode = "/" + znode;
+		if(!znode.startsWith("/")) {
+			znode = "/" + znode;
+		}
 		monitor = new DataMonitor(zk, znode, null, this);
 		stat = zk.exists(znode, true);
 	}
