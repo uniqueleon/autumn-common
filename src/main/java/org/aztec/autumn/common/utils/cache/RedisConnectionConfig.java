@@ -15,6 +15,7 @@ public class RedisConnectionConfig extends DatabasePropertiesConfig {
 		super(GlobalConst.META_DATA_CENTER_INFO.REDIS_CONNECT_QUERY_SQL,
 				GlobalConst.META_DATA_CENTER_INFO.TABLE_COLUMNS[GlobalConst.META_DATA_CENTER_INFO.CONTENT_COLUMN_INDEX]);
 		loadInfoFromDB();
+		init();
 	}
 
 	public String getHosts() {

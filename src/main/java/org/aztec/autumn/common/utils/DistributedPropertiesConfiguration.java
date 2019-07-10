@@ -32,7 +32,7 @@ public abstract class DistributedPropertiesConfiguration extends BasePropertiesC
 	protected Map<String,Object> propertiesMap = Maps.newHashMap(); 
 
 	public DistributedPropertiesConfiguration() {
-		super("res:/disconf.properties");
+		super("system");
 	}
 
 	private void initData() throws ClassNotFoundException, SQLException {

@@ -25,8 +25,8 @@ public interface GlobalConst {
 		public static final String REDIS_CONFIG_NAME = "REDIS_CONNECT_INFO";
 		public static final int ZOOKEEPER_CONNECT_INFO_TYPE = 1;
 		public static final int REDIS_CONNECT_INFO_TYPE = 2;
-		public static final String ZOOKEEPER_CONNECT_QUERY_SQL = "SELECT `content` from " + BASE_TABLE_NAME + " where type=" + CONNECTION_CONFIG_TYPE + " and name = " + ZK_CONFIG_NAME + " limit 1";
-		public static final String REDIS_CONNECT_QUERY_SQL = "SELECT `content` from " + BASE_TABLE_NAME + " where type=" + CONNECTION_CONFIG_TYPE + " and name = " + REDIS_CONFIG_NAME + " limit 1";
+		public static final String ZOOKEEPER_CONNECT_QUERY_SQL = "SELECT `content` from " + BASE_TABLE_NAME + " where type=" + CONNECTION_CONFIG_TYPE + " and name = '" + ZK_CONFIG_NAME + "' limit 1";
+		public static final String REDIS_CONNECT_QUERY_SQL = "SELECT `content` from " + BASE_TABLE_NAME + " where type=" + CONNECTION_CONFIG_TYPE + " and name = '" + REDIS_CONFIG_NAME + "' limit 1";
 		public static final String[] TABLE_COLUMNS = {"id","name","content","type","desc","c_gmt","u_gmt"}; 
 		public static final int CONTENT_COLUMN_INDEX = 2;
 		public static final int NAME_COLUMN_INDEX = 1;

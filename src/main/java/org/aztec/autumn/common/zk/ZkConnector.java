@@ -21,12 +21,12 @@ public class ZkConnector {
 	
 	private static ZooKeeper zk;
 	private static final Logger LOG = LoggerFactory.getLogger(ZkNode.class);
-	private static LocalConnectionConfig connectConfig = new LocalConnectionConfig();
+	private static LocalConnectionConfig connectConfig;
 	
 
 	static {
 		try {
-			
+			connectConfig = new LocalConnectionConfig();
 			zk = new ZooKeeper(connectConfig.getConnectString(), connectConfig.getSessionTimeout(), null);
 			//zk = new ZooKeeper(connectConfig.getConnectString(), connectConfig.getSessionTimeout(), null,new Random().nextLong(),password.getBytes());
 			//zk = new Zoo
@@ -56,10 +56,11 @@ public class ZkConnector {
 		@Property("authUser")
 		private String authUser = "liming:1234";
 
-		public LocalConnectionConfig() {
+		public LocalConnectionConfig() throws Exception {
 			super(META_DATA_CENTER_INFO.ZOOKEEPER_CONNECT_QUERY_SQL,
 					META_DATA_CENTER_INFO.TABLE_COLUMNS[META_DATA_CENTER_INFO.CONTENT_COLUMN_INDEX]);
 			init();
+			loadInfoFromDB();
 		}
 
 		public String getConnectString() {

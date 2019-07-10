@@ -29,7 +29,7 @@ public abstract class BasePropertiesConfig {
 	
 	public BasePropertiesConfig(String propFilePath) {
 		// TODO Auto-generated constructor stub
-		
+		this.filePath = propFilePath;
 		if(filePath.equals("system")) {
 			filePath = System.getProperty(DEFAUTL_SYSTEM_PROPERTY_FILE);
 		}

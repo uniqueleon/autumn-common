@@ -36,9 +36,10 @@ public abstract class DatabasePropertiesConfig extends BasePropertiesConfig {
 
 	
 	protected void loadInfoFromDB() throws Exception {
-		String dbUrl = properties.getProperty(prefix + ".jdbc.url");
-		String[] authUser = properties.getProperty(prefix + ".auth").split(":");
-		DBManager dbManager =  DBManager.getManager(dbUrl, authUser[0], authUser[1], "mysql");
+		String dbUrl = properties.getProperty(prefix + "jdbc.url");
+		String[] authUser = properties.getProperty(prefix + "auth").split(":");
+		String dbType = properties.getProperty(prefix + "db.type");
+		DBManager dbManager =  DBManager.getManager(dbUrl, authUser[0], authUser[1], dbType);
 		if(dbManager != null) {
 			QueryExecutor executor = dbManager.getQueryExecutor();
 			/*List<Map<String,String>> retList = executor.getQueryResultAsMap(

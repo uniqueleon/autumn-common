@@ -40,6 +40,7 @@ public class RedisUtil implements CacheUtils{
 	private static final Map<String,Object> locks = Maps.newConcurrentMap();
 	private static LockChecker checker = null;
 	
+	
 
 	public RedisUtil(String host,Integer port){
 		this.hosts.add(host);
@@ -225,20 +226,16 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public void publish(String channel, String msg) throws CacheException {
 		
-		int randomIndex = RandomUtils.nextInt(pools.size() + 1);
-		while (randomIndex == 0) {
-			randomIndex = RandomUtils.nextInt(pools.size() + 1);
-		}
+		int randomIndex = RandomUtils.nextInt(pools.size());
 		Jedis jedis = pools.get(randomIndex).getResource();
 		jedis.publish(channel, msg);
-		jedis.close();
 	}
 
 	@Override
-	public void subscribe(CacheDataSubscriber subscriber,String...channel) throws CacheException {
+	public void subscribe(CacheDataSubscriber subscriber,String...channels) throws CacheException {
 		for(JedisPool pool : pools) {
-			Jedis jedis = pool.getResource();
-			jedis.subscribe(new DefaultSubscriber(subscriber), channel);
+			AsyncSubscriber ayncSub = new AsyncSubscriber(pool, subscriber, channels);
+			ayncSub.start();
 		}
 	}
 
@@ -303,5 +300,7 @@ public class RedisUtil implements CacheUtils{
 		
 		
 	}
+	
+	
 
 }
