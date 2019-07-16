@@ -29,6 +29,9 @@ public abstract class ZkNode implements DataMonitorListener{
 	
 	public ZkNode(String dataID) throws IOException, KeeperException, InterruptedException {
 		zk = ZkConnector.getKeeper();
+		if(zk == null) {
+			throw new IOException("Zookeeper server can't be accessed!");
+		}
 		this.dataID = dataID;
 		znode = dataID.replace(".", "/");
 		if(!znode.startsWith("/")) {
@@ -132,5 +135,14 @@ public abstract class ZkNode implements DataMonitorListener{
 
 	public void destroy() {
 		monitor.stop();
+	}
+	
+	public void delete() throws InterruptedException, KeeperException {
+		monitor.stop();
+		zk.delete(znode, -1);
+	}
+	
+	public List<String> getSubNodes() throws KeeperException, InterruptedException {
+		return zk.getChildren(znode, true);
 	}
 }

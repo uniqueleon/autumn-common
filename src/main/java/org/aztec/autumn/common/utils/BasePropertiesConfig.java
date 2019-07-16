@@ -32,6 +32,9 @@ public abstract class BasePropertiesConfig {
 		this.filePath = propFilePath;
 		if(filePath.equals("system")) {
 			filePath = System.getProperty(DEFAUTL_SYSTEM_PROPERTY_FILE);
+			if(filePath == null) {
+				filePath = "conf/aztec_base.properties";
+			}
 		}
 		else {
 			this.filePath = propFilePath;

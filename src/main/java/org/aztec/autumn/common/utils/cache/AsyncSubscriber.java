@@ -13,6 +13,16 @@ public class AsyncSubscriber extends Thread{
 		this.pool = pool;
 		this.subscriber = subscriber;
 		this.channels = channels;
+		this.setName(getThreadName(channels));
+	}
+	
+	public String getThreadName(String[] channels) {
+		StringBuilder nameBuilder = new StringBuilder();
+		nameBuilder.append("REDIS_SUBSCRIBER_FOR#");
+		for(String channel : channels) {
+			nameBuilder.append(channel);
+		}
+		return nameBuilder.toString();
 	}
 
 	@Override

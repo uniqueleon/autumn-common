@@ -1,21 +1,13 @@
 package org.aztec.autumn.common.zk;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.zookeeper.ZooKeeper;
 import org.aztec.autumn.common.GlobalConst.META_DATA_CENTER_INFO;
-import org.aztec.autumn.common.utils.BasePropertiesConfig;
 import org.aztec.autumn.common.utils.DatabasePropertiesConfig;
 import org.aztec.autumn.common.utils.JsonUtils;
 import org.aztec.autumn.common.utils.UtilsFactory;
 import org.aztec.autumn.common.utils.annotation.config.Property;
-import org.aztec.autumn.common.utils.jdbc.DBManager;
-import org.aztec.autumn.common.utils.jdbc.QueryExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mchange.util.AssertException;
 
 public class ZkConnector {
 	
