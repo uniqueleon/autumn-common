@@ -17,15 +17,15 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 	protected int dept;
 	protected boolean synchorized = false;
 	
-	public AbstractSynchronizableData(Cloneable<T> data,int[] slots) {
-		this.data = data.cloneThis();
+	public AbstractSynchronizableData(T data,int[] slots) {
+		this.data = data;
 		this.uuid = "" + data.hashCode();
 		this.version = generateVersion();
 		this.slots = slots;
 	}
 
-	public AbstractSynchronizableData(Cloneable<T> data,String uuid,int[] slots) {
-		this.data = data.cloneThis();
+	public AbstractSynchronizableData(T data,String uuid,int[] slots) {
+		this.data = data;
 		this.uuid = uuid;
 		this.version = generateVersion();
 		this.slots = slots;
@@ -44,12 +44,12 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 		this.synchorized = synchorized;
 	}
 
-	public AbstractSynchronizableData(String uuid, int[] slots, Cloneable<T> data,String version, String nextVersion, String previousVersion,
+	public AbstractSynchronizableData(String uuid, int[] slots, T data,String version, String nextVersion, String previousVersion,
 			int dept) {
 		super();
 		this.uuid = uuid;
 		this.slots = slots;
-		this.data = data.cloneThis();
+		this.data = data;
 		this.version = version;
 		this.previousVersion = previousVersion;
 		this.dept = dept;

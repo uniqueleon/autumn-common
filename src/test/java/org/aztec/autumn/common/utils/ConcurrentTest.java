@@ -5,11 +5,10 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.aztec.autumn.common.utils.concurrent.AbstractSynchronizableData;
-import org.aztec.autumn.common.utils.concurrent.Cloneable;
-import org.aztec.autumn.common.utils.concurrent.InMemorySynchronizer;
 import org.aztec.autumn.common.utils.concurrent.NoLockDataSynchronizer;
 import org.aztec.autumn.common.utils.concurrent.NoLockException;
 import org.aztec.autumn.common.utils.concurrent.Synchronizable;
+import org.aztec.autumn.common.utils.concurrent.impl.InMemorySynchronizer;
 
 import com.beust.jcommander.internal.Lists;
 
@@ -21,15 +20,12 @@ public class ConcurrentTest {
 	private static Random random = new Random();
 	private static String uuid;
 	//1. 完全无锁 . 2.对象锁 3.CAS无锁 4.新无锁并发
-	private static int mode = 3;
-	
+	private static int mode = 4;
+	private static int modulus = 6;
 	private static final long BUSSINESS_COST = 100l;
 	public ConcurrentTest() {
 		// TODO Auto-generated constructor stub
 	}
-	
-	
-	
 
 	public static void main(String[] args) {
 		doTest();
@@ -42,7 +38,7 @@ public class ConcurrentTest {
 			int threadNum = 100;
 			List<TestSafeThread> tList=  Lists.newArrayList();
 			for(int i = 0;i < threadNum;i++) {
-				TestSafeThread sat = new TestSafeThread(i % 6);
+				TestSafeThread sat = new TestSafeThread(i % modulus);
 				sat.start();
 				tList.add(sat);
 			}
@@ -105,7 +101,7 @@ public class ConcurrentTest {
 		public Integer getNewValue(Integer targetData) throws InterruptedException {
 			//模拟执行业务的消耗
 			Thread.currentThread().sleep(BUSSINESS_COST);
-			return targetData + new Double(Math.pow(10, index * 1d) * 6).intValue();
+			return targetData + new Double(Math.pow(10, index * 1d) * modulus).intValue();
 		}
 		
 		public static Integer getResult() throws NoLockException {
@@ -140,25 +136,22 @@ public class ConcurrentTest {
 		
 		
 		public void runInCASNoLock() throws InterruptedException {
-			
-			boolean isWritable = isValid(atomData.get(),index);
-			if(isWritable) {
-				int thisValue = atomData.get();
+
+			int thisValue = atomData.get();
+			if(isValid(thisValue,index)) {
 				int targetValue = getNewValue(thisValue);
 				while(!atomData.compareAndSet(thisValue,targetValue)) {
-					isWritable =  isValid(atomData.get(),index);
-					if(!isWritable) {
+					thisValue = atomData.get();
+					if(!isValid(thisValue,index)) {
 						break;
 					}
-					thisValue =  atomData.get();
 					targetValue = getNewValue(thisValue);
-					Thread.currentThread().sleep(1l);
 				}
 			}
 		}
 		
 		public void runInNewNoLock() throws NoLockException, InterruptedException {
-			Synchronizable<Integer> syncData = new IntegerMergible(new CloneableInteger(startData), uuid,new int[] {index},index);
+			Synchronizable<Integer> syncData = new IntegerMergible(startData.intValue(), uuid,new int[] {index},index);
 			syncData = synchronizer.synchronize(syncData);
 			//同步过数据后，index值可能被更新了，于是需要重新设置
 			IntegerMergible cloneOne = syncData.cast();
@@ -178,7 +171,7 @@ public class ConcurrentTest {
 		private int index;
 		
 
-		public IntegerMergible(CloneableInteger data,String uuid, int[] slots,int index) {
+		public IntegerMergible(Integer data,String uuid, int[] slots,int index) {
 			super(data, uuid ,slots);
 			this.index = index;
 		}
@@ -210,7 +203,7 @@ public class ConcurrentTest {
 
 		@Override
 		public Synchronizable<Integer> cloneThis() {
-			IntegerMergible newOne=  new IntegerMergible(new CloneableInteger(getData()), uuid, slots, index);
+			IntegerMergible newOne=  new IntegerMergible(getData().intValue(), uuid, slots, index);
 			newOne.dept = dept;
 			newOne.oldData = oldData;
 			newOne.previousVersion = previousVersion;
@@ -229,26 +222,4 @@ public class ConcurrentTest {
 		
 	}
 	
-	public static class CloneableInteger implements Cloneable<Integer>{
-		
-		int intValue;
-		
-		public CloneableInteger(int targetValue) {
-			this.intValue = targetValue;
-		}
-
-		@Override
-		public Integer cloneThis() {
-			return intValue;
-		}
-
-		public int getIntValue() {
-			return intValue;
-		}
-
-		public void setIntValue(int intValue) {
-			this.intValue = intValue;
-		}
-		
-	}
 }

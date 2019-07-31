@@ -1,11 +1,14 @@
-package org.aztec.autumn.common.utils.concurrent;
+package org.aztec.autumn.common.utils.concurrent.impl;
 
-public class InMemoryTreeNode {
+import org.aztec.autumn.common.utils.concurrent.Synchronizable;
+import org.aztec.autumn.common.utils.concurrent.VersionedNode;
+
+public class InMemoryTreeNode implements VersionedNode{
 	
 	private boolean isRoot;
 	private boolean isLeaf;
 	private int dept;
-	private InMemoryTreeNode parent;
+	private VersionedNode parent;
 	private Synchronizable data;
 
 	public InMemoryTreeNode(Synchronizable data) {
@@ -14,10 +17,10 @@ public class InMemoryTreeNode {
 	
 	public int calcuteDept() {
 		dept = 0;
-		InMemoryTreeNode tempNode = parent;
+		VersionedNode tempNode = parent;
 		while(tempNode != null) {
 			dept++;
-			tempNode = tempNode.getParent();
+			tempNode = tempNode.getParent();;
 		}
 		return dept;
 	}
@@ -56,18 +59,18 @@ public class InMemoryTreeNode {
 		this.isLeaf = isLeaf;
 	}
 
-	public InMemoryTreeNode getParent() {
+	public VersionedNode getParent() {
 		return parent;
 	}
 
-	public void setParent(InMemoryTreeNode parent) {
+	public void setParent(VersionedNode parent) {
 		this.parent = parent;
 	}
 
-	public InMemoryTreeNode merge(InMemoryTreeNode otherNode) {
+	public VersionedNode merge(VersionedNode otherNode) {
 		InMemoryTreeNode newNode = new InMemoryTreeNode(data);
 		newNode.data = data.cloneThis();
-		newNode.data.merge(otherNode.data);
+		newNode.data.merge(otherNode.getData());
 		newNode.data.setPreviousVersion(data.getVersion());
 		newNode.parent = this;
 		return newNode;

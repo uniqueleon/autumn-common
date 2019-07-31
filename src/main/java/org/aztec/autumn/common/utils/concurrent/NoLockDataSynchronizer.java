@@ -18,7 +18,7 @@ public interface NoLockDataSynchronizer {
 	public void release(Synchronizable target) throws NoLockException;
 
 	/**
-	 * 获取最新的同步对象，在这个过程会自动计算并合并对象池中的所有同步对象，所以是非线程安全的，请慎用
+	 * 获取最新的同步对象，在这个过程会自动计算所有同步对象的版本号，一般在merge方法后执行，非线程安全，请慎用
 	 * @return
 	 * @throws NoLockException
 	 */

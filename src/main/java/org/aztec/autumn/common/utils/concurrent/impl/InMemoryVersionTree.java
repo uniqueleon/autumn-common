@@ -1,25 +1,28 @@
-package org.aztec.autumn.common.utils.concurrent;
+package org.aztec.autumn.common.utils.concurrent.impl;
 
 import java.util.List;
 import java.util.Map;
 
+import org.aztec.autumn.common.utils.concurrent.NoLockException;
+import org.aztec.autumn.common.utils.concurrent.VersionTree;
+import org.aztec.autumn.common.utils.concurrent.VersionedNode;
 import org.aztec.autumn.common.utils.concurrent.NoLockException.ErrorCodes;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Maps;
 
-public class InMemoryVersionTree {
+public class InMemoryVersionTree implements VersionTree{
 	
 
 	private final Object rootLock = new Object();
-	private InMemoryTreeNode root;
-	private final Map<String,InMemoryTreeNode> allNodes = Maps.newConcurrentMap();
+	private VersionedNode root;
+	private final Map<String,VersionedNode> allNodes = Maps.newConcurrentMap();
 
 	public InMemoryVersionTree() {
 		// TODO Auto-generated constructor stub
 	}
 
-	public InMemoryTreeNode addNode(InMemoryTreeNode node) throws NoLockException {
+	public VersionedNode addNode(VersionedNode node) throws NoLockException {
 		if(root == null) {
 			synchronized (rootLock) {
 				if(root == null) {
@@ -48,14 +51,14 @@ public class InMemoryVersionTree {
 		return node;
 	}
 	
-	public InMemoryTreeNode findNodeByVersion(String version) throws NoLockException{
+	public VersionedNode findNodeByVersion(String version) throws NoLockException{
 		return allNodes.get(version);
 	}
 	
-	public InMemoryTreeNode getNewestNode() throws NoLockException {
-		List<InMemoryTreeNode> newestNodes = Lists.newArrayList();
+	public VersionedNode getNewestNode() throws NoLockException {
+		List<VersionedNode> newestNodes = Lists.newArrayList();
 		int curDept = -1;
-		for(InMemoryTreeNode node : allNodes.values()) {
+		for(VersionedNode node : allNodes.values()) {
 			int dept = node.calcuteDept();
 			if(curDept < dept ) {
 				curDept = dept;
@@ -66,7 +69,7 @@ public class InMemoryVersionTree {
 				newestNodes.add(node);
 			}
 		}
-		InMemoryTreeNode retNode = newestNodes.size() > 0 ? newestNodes.get(0) : null;
+		VersionedNode retNode = newestNodes.size() > 0 ? newestNodes.get(0) : null;
 		/*
 		 * if(retNode != null) { retNode.getData().setSynchronized(true); }
 		 */
@@ -74,9 +77,9 @@ public class InMemoryVersionTree {
 	}
 	
 	public void merge() throws NoLockException {
-		List<InMemoryTreeNode> leafs = getLeafs();
-		InMemoryTreeNode newNode = getNewestNode();
-		for(InMemoryTreeNode node : leafs) {
+		List<VersionedNode> leafs = getLeafs();
+		VersionedNode newNode = getNewestNode();
+		for(VersionedNode node : leafs) {
 			if(newNode.getData().getVersion().equals(node.getData().getVersion())){
 				continue;
 			}
@@ -87,9 +90,9 @@ public class InMemoryVersionTree {
 		}
 	}
 	
-	public List<InMemoryTreeNode> getLeafs() {
-		List<InMemoryTreeNode> leafs = Lists.newArrayList();
-		for(InMemoryTreeNode node : allNodes.values()) {
+	public List<VersionedNode> getLeafs() {
+		List<VersionedNode> leafs = Lists.newArrayList();
+		for(VersionedNode node : allNodes.values()) {
 			if(node.isLeaf()) {
 				leafs.add(node);
 			}
@@ -97,7 +100,7 @@ public class InMemoryVersionTree {
 		return leafs;
 	}
 
-	public InMemoryTreeNode getRoot() {
+	public VersionedNode getRoot() {
 		return root;
 	}
 
@@ -107,7 +110,7 @@ public class InMemoryVersionTree {
 	}
 
 
-	public Map<String, InMemoryTreeNode> getAllNodes() {
+	public Map<String, VersionedNode> getAllNodes() {
 		return allNodes;
 	}
 
