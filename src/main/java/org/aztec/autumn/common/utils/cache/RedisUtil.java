@@ -31,7 +31,7 @@ public class RedisUtil implements CacheUtils{
 	private static boolean isStarted = false;
 	private List<String> hosts = new ArrayList<>();
 	private List<Integer> ports = new ArrayList<>();
-	private List<JedisPool> pools = Lists.newArrayList();
+	private List<JedisPool> pools = Lists.newCopyOnWriteArrayList();
 	//private static ThreadLocal<JedisCommands> redisClient = new ThreadLocal<>();
 	//private static JedisCommands redisClient;
 	private JedisCommands redisClient;
@@ -73,7 +73,6 @@ public class RedisUtil implements CacheUtils{
 	}
 	
 	public void connect(){
-		pools = Lists.newArrayList();
 		if(redisClient == null){
 			if(hosts.size() == 1){
 				Jedis jc = new Jedis(hosts.get(0), ports.get(0));
@@ -136,20 +135,22 @@ public class RedisUtil implements CacheUtils{
 		try {
 			//wLock.lock();
 			if (isStarted == false)
-				return;
-			if (value instanceof String) {
-				if(ttl == null)
-					redisClient.set(key, (String) value);
-				else
-					redisClient.setex(key, ttl.intValue(), (String) value);
-				//redisClient.get().set(key, (String) value);
-			} else {
-				if(ttl == null)
-					redisClient.set(key, getJsonForm(value));
-				else
-					redisClient.setex(key, ttl.intValue(), getJsonForm(value));
-				//redisClient.set
-				//redisClient.get().set(key, getJsonForm(value));
+				throw new CacheException("The redis util has not been initialized!");
+			synchronized (redisClient) {
+				if (value instanceof String) {
+					if(ttl == null)
+						redisClient.set(key, (String) value);
+					else
+						redisClient.setex(key, ttl.intValue(), (String) value);
+					//redisClient.get().set(key, (String) value);
+				} else {
+					if(ttl == null)
+						redisClient.set(key, getJsonForm(value));
+					else
+						redisClient.setex(key, ttl.intValue(), getJsonForm(value));
+					//redisClient.set
+					//redisClient.get().set(key, getJsonForm(value));
+				}
 			}
 		} catch (JedisConnectionException jce){
 			if(reconnect()){
@@ -161,6 +162,7 @@ public class RedisUtil implements CacheUtils{
 		}
 		catch (Exception e) {
 			LOG.error(e.getMessage(),e);
+			throw new CacheException(e.getMessage());
 		}
 		finally{
 			//wLock.unlock();
@@ -176,7 +178,10 @@ public class RedisUtil implements CacheUtils{
 			//rLock.lock();
 			if (isStarted == false)
 				return null;
-			String value = redisClient.get(key);
+			String value = null;
+			synchronized (redisClient) {
+				redisClient.get(key);
+			}
 			//String value = redisClient.get().get(key);
 			if(value == null)
 				return null;
@@ -211,7 +216,9 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public void remove(String key) throws CacheException {
 		//String oldValue = redisClient.get().get(key);
-		redisClient.del(key);
+		synchronized (redisClient) {
+			redisClient.del(key);
+		}
 		//redisClient.get().del(key);
 	}
 
@@ -226,9 +233,14 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public void publish(String channel, String msg) throws CacheException {
 		
+		if(pools.size() == 0) {
+			throw new CacheException("No redis pool found!");
+		}
+		
 		int randomIndex = RandomUtils.nextInt(pools.size());
 		Jedis jedis = pools.get(randomIndex).getResource();
 		jedis.publish(channel, msg);
+		jedis.close();
 	}
 
 	@Override
@@ -240,8 +252,12 @@ public class RedisUtil implements CacheUtils{
 	}
 
 	@Override
-	public void lock(String key) throws CacheException {
-		Long ret = redisClient.setnx(key, "lock");
+	public void lock(String key,long timeout) throws CacheException {
+		String value = System.currentTimeMillis() + "_" + timeout;
+		Long ret = 0l;
+		synchronized (redisClient) {
+			ret = redisClient.setnx(key, value);
+		}
 		if(ret == 0) {
 			Object lockObj = locks.get(key);
 			if(lockObj == null) {
@@ -253,8 +269,10 @@ public class RedisUtil implements CacheUtils{
 				}
 			}
 			try {
-				lockObj.wait();
-				lock(key);
+				synchronized (lockObj) {
+					lockObj.wait();
+				}
+				lock(key,timeout);
 			} catch (InterruptedException e) {
 				throw new CacheException(e.getMessage(), e);
 			}
@@ -262,17 +280,27 @@ public class RedisUtil implements CacheUtils{
 	}
 
 	@Override
-	public boolean tryLock(String key) throws CacheException {
-		Long ret = redisClient.setnx(key, "lock");
+	public boolean tryLock(String key,long timeout) throws CacheException {
+		Long ret = 0l;
+		synchronized (redisClient) {
+			ret = redisClient.setnx(key, "lock");
+		}
 		return ret == 1;
 	}
 
 	@Override
 	public void unlock(String key) throws CacheException {
-		redisClient.del(key);
+
+		synchronized (redisClient) {
+			if(redisClient.exists(key)) {
+				redisClient.del(key);
+			}
+		}
 		Object lockObj = locks.get(key);
 		if(lockObj != null) {
-			lockObj.notifyAll();
+			synchronized (lockObj) {
+				lockObj.notifyAll();
+			}
 		}
 		locks.remove(key);
 	}
@@ -286,9 +314,22 @@ public class RedisUtil implements CacheUtils{
 			try {
 				while(runnable) {
 					for(String lockKey : locks.keySet()) {
-						if(redisClient.get(lockKey) == null) {
+						String checkValue = null;
+						synchronized (redisClient) {
+							checkValue = redisClient.get(lockKey);
+						}
+						if(checkValue == null) {
 							locks.get(lockKey).notifyAll();
 							locks.remove(lockKey);
+						}
+						else {
+							String[] timeArr = checkValue.split("_");
+							Long lockTime = Long.parseLong(timeArr[0]);
+							Long timeout = Long.parseLong(timeArr[1]);
+							Long curTime = System.currentTimeMillis();
+							if(curTime - lockTime > timeout) {
+								unlock(lockKey);
+							}
 						}
 					}
 					Thread.currentThread().sleep(10);
@@ -300,7 +341,126 @@ public class RedisUtil implements CacheUtils{
 		
 		
 	}
-	
-	
 
+	@Override
+	public void hset(String setName, String field, String value) throws CacheException {
+		// TODO Auto-generated method stub
+		synchronized (redisClient) {
+			redisClient.hset(setName, field , value);
+		}
+	}
+
+	@Override
+	public String hget(String setName, String field) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.hget(setName, field);
+		}
+	}
+
+	@Override
+	public void hdel(String setName, String field, String value) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.hdel(setName, field);
+		}
+	}
+
+	@Override
+	public Map<String, String> hgetAll(String setName) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.hgetAll(setName);
+		}
+	}
+
+	@Override
+	public List<String> hkeys(String setName) throws CacheException {
+		// TODO Auto-generated method stub
+		synchronized (redisClient) {
+			return Lists.newArrayList(redisClient.hkeys(setName));
+		}
+	}
+
+	@Override
+	public List<String> hvals(String setName) throws CacheException {
+		// TODO Auto-generated method stub
+		synchronized (redisClient) {
+			return Lists.newArrayList(redisClient.hvals(setName));
+		}
+	}
+
+	@Override
+	public void lset(String list, int index, String value) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.lset(list, index, value);
+		}
+	}
+
+	@Override
+	public List<String> listAll(String list) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.lrange(list, 0, redisClient.llen(list));
+		}
+	}
+
+	@Override
+	public String lget(String list, int index) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.lindex(list, index);
+		}
+	}
+
+	@Override
+	public void hdel(String set, String... field) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.hdel(set, field);
+		}
+	}
+
+	@Override
+	public void hdelAll(String set) throws CacheException {
+		List<String> allFields = hkeys(set);
+		String[] fieldArrs = allFields.toArray(new String[allFields.size()]);
+		synchronized (redisClient) {
+			hdel(set, fieldArrs);
+		}
+	}
+
+	@Override
+	public void lrem(String list, int index,String value) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.lrem(list, index, value);
+		}
+	}
+
+	@Override
+	public void lremAll(String list) throws CacheException {
+		List<String> listValues = listAll(list);
+		synchronized (redisClient) {
+			for(String listVal : listValues) {
+				redisClient.lrem(list, 0, listVal);
+			}
+		}
+	}
+
+	@Override
+	public void hset(String setName, Map<String, String> setMap) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.hset(setName, setMap);
+		}
+	}
+
+
+	@Override
+	public boolean exists(String key) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.exists(key);
+		}
+	}
+
+	@Override
+	public void lpush(String list, String value) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.lpush(list, value);
+		}
+	}
+	
 }

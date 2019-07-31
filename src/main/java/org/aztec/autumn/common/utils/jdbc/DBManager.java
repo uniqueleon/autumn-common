@@ -12,7 +12,6 @@ public class DBManager {
 			.getLogger(DBManager.class);
 	private DataCache cache;
 	private JdbcConnector connector;
-	private ConnectionListener conectionListener = new ConnectionListener();
 	private final static int RECONNECT_TRY_TIME = 3;
 
 	public static DBManager getManager(String configFilePath) throws ClassNotFoundException, SQLException{
@@ -41,12 +40,10 @@ public class DBManager {
 	  
 	  queryExec = new QueryExecutorImpl(
 				connector.getConnection());
-    conectionListener.start();
 	}
 	
 	public void disconnect() throws SQLException, ClassNotFoundException{
 		queryExec.closeConnection();
-		conectionListener.stopListener();
 	}
 	
 	public QueryExecutor reconnect(int tryTime) throws SQLException{
@@ -76,57 +73,5 @@ public class DBManager {
 	  return cache;
 	}
 	
-
-	/*
-	 * private static final
-	 * 
-	 * public AuthenticationDBManager() { }
-	 */
-
-	class ConnectionListener extends Thread {
-
-		private final static long SLEEP_INTERVAL = 1800 * 1000;
-		private boolean running = false;
-
-		@Override
-		public void run() {
-			running = true;
-			while (running) {
-				try {
-					if (queryExec == null)
-						connect();
-					logger.info("Listener is tring to activate the connection!");
-					queryExec.getQueryResultAsString("select 1");
-					Thread.currentThread().sleep(SLEEP_INTERVAL);
-				} catch (SQLException e) {
-					logger.error(e.getMessage(), e);
-					try {
-						reconnect(0);
-					} catch (SQLException e1) {
-						logger.error(e.getMessage(), e);
-						try {
-							Thread.currentThread().sleep(1000);
-						} catch (InterruptedException e2) {
-							break;
-						}
-					}
-				} catch (InterruptedException e2) {
-					break;
-				} catch (Exception e) {
-					logger.error(e.getMessage(), e);
-				}
-			}
-
-		}
-
-		public void stopListener() {
-			this.running = false;
-			this.interrupt();
-		}
-
-		public boolean isRunning() {
-			return running;
-		}
-	}
 
 }

@@ -35,6 +35,18 @@ public class BitSetUtil {
 		charIndexMap.put(new Character('e'), 14);
 		charIndexMap.put(new Character('f'), 15);
 	}
+	
+	public static BitSet array2BitSet(int[] locations) {
+		BitSet bs = new BitSet();
+		if(locations == null || locations.length == 0) {
+			return bs;
+		}
+		for(Integer loc : locations){
+			bs.set(loc);
+		}
+		return bs;
+	}
+	
 
 	public static BitSet array2BitSet(List<Integer> locations){
 		BitSet bs = new BitSet();

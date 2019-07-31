@@ -11,7 +11,7 @@ public class StringUtils {
 
 	private static final char[] HEX_CHARS = "0123456789ABCDEF".toCharArray();
 	private static final int[] ESCAPE_CODES = CharTypes.get7BitOutputEscapes();
-	private static Random random = new Random();
+	private static final Random random = new Random();
 
 	public StringUtils() {
 		// TODO Auto-generated constructor stub
@@ -128,7 +128,6 @@ public class StringUtils {
 	}
 
 	public static String getRamdonNumberString(int length) {
-		Random random = new Random();
 		StringBuilder randomKey = new StringBuilder();
 		for (int i = 0; i < length; i++) {
 			randomKey.append("" + random.nextInt(10));
@@ -146,7 +145,6 @@ public class StringUtils {
 	}
 
 	private static char getRandomChar(int[][] acceptableRanges) {
-		Random random = new Random();
 		int retChar = random.nextInt(128);
 		while (!isCharAcceptable(retChar, acceptableRanges)) {
 			retChar = random.nextInt(128);
@@ -237,5 +235,9 @@ public class StringUtils {
 			tmp /= 10;
 		}
 		return count;
+	}
+	
+	public static String removeBackquote(String text) {
+		return text.replaceAll("`", "");
 	}
 }

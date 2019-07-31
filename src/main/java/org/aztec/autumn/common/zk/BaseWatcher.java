@@ -74,6 +74,9 @@ public class BaseWatcher implements Watcher {
 		String path = event.getPath();
 		if(!StringUtils.isEmpty(path)) {
 			Watcher watcher = watchers.get(path);
+			if(watcher == null) {
+				return;
+			}
 			watcher.process(event);			
 			if(watcher instanceof ChainedWatcher) {
 				ChainedWatcher thisWatcher = (ChainedWatcher) watcher;

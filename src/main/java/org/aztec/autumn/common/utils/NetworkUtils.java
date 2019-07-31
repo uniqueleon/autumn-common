@@ -31,6 +31,10 @@ public class NetworkUtils {
 		return sb;
 	}
 	
+	public static String getLocalHost() throws SocketException {
+		return getLocalAddress().get(0);
+	}
+	
 
 	public static void main(String[] args) {
 		try {

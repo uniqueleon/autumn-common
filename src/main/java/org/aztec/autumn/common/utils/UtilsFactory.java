@@ -58,17 +58,19 @@ public class UtilsFactory {
 	
 	private CacheUtils getCacheUtils(String[] hosts,Integer[] port,String password) {
 		String cacheKey = getCacheUtilKey(hosts, port);
-		if(cacheUtilsCache.containsKey(cacheKey)) {
-			return cacheUtilsCache.get(cacheKey);
-		}
-		else {
-			RedisUtil redis = new RedisUtil(hosts, port);
-			if(password != null) {
-				redis.setPassword(password);
+		if(!cacheUtilsCache.containsKey(cacheKey)) {
+			synchronized (cacheUtilsCache) {
+				if(!cacheUtilsCache.containsKey(cacheKey)) {
+					RedisUtil redis = new RedisUtil(hosts, port);
+					if(password != null) {
+						redis.setPassword(password);
+					}
+					redis.connect();
+					cacheUtilsCache.put(cacheKey, redis);
+				}
 			}
-			redis.connect();
-			return redis;
 		}
+		return cacheUtilsCache.get(cacheKey);
 	}
 	
 	public CacheUtils getCacheUtils(String cacheServer,Integer port){

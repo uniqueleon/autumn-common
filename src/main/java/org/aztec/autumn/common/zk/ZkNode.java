@@ -113,11 +113,11 @@ public abstract class ZkNode implements DataMonitorListener{
 	}
 
 	public int getCurVersion() {
-		return stat.getVersion();
+		return stat == null ? 0 : stat.getVersion();
 	}
 	
 	public int getDataVarsion() {
-		return stat.getCversion();
+		return stat == null ? 0 : stat.getCversion();
 	}
 	
 	public void write(String newData) throws UnsupportedEncodingException, KeeperException, InterruptedException {
@@ -127,7 +127,7 @@ public abstract class ZkNode implements DataMonitorListener{
 			zk.create(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET),aclList,CreateMode.PERSISTENT);
 		}
 		this.dataStr = newData;
-		zk.setData(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET), -1);
+		zk.setData(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET), getDataVarsion());
 	}
 	
 	protected abstract void notifyChanges() throws Exception;
@@ -137,9 +137,13 @@ public abstract class ZkNode implements DataMonitorListener{
 		monitor.stop();
 	}
 	
-	public void delete() throws InterruptedException, KeeperException {
+	public void delete()  {
 		monitor.stop();
-		zk.delete(znode, -1);
+		try {
+			zk.delete(znode, -1);
+		} catch (Exception e) {
+			LOG.error(e.getMessage());
+		}
 	}
 	
 	public List<String> getSubNodes() throws KeeperException, InterruptedException {
