@@ -4,7 +4,7 @@ public interface VersionedNode {
 
 	public int calcuteDept();
 	public boolean isRoot();
-	public Synchronizable getData();
+	public <T> Synchronizable<T> getData();
 	public boolean isLeaf();
 	public void setRoot(boolean isRoot) ;
 	public void setLeaf(boolean isLeaf) ;

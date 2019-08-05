@@ -358,7 +358,7 @@ public class RedisUtil implements CacheUtils{
 	}
 
 	@Override
-	public void hdel(String setName, String field, String value) throws CacheException {
+	public void hdel(String setName, String field) throws CacheException {
 		synchronized (redisClient) {
 			redisClient.hdel(setName, field);
 		}
@@ -460,6 +460,13 @@ public class RedisUtil implements CacheUtils{
 	public void lpush(String list, String value) throws CacheException {
 		synchronized (redisClient) {
 			redisClient.lpush(list, value);
+		}
+	}
+
+	@Override
+	public boolean hexists(String setName, String field) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.hexists(setName, field);
 		}
 	}
 	

@@ -8,7 +8,8 @@ import org.aztec.autumn.common.utils.concurrent.AbstractSynchronizableData;
 import org.aztec.autumn.common.utils.concurrent.NoLockDataSynchronizer;
 import org.aztec.autumn.common.utils.concurrent.NoLockException;
 import org.aztec.autumn.common.utils.concurrent.Synchronizable;
-import org.aztec.autumn.common.utils.concurrent.impl.InMemorySynchronizer;
+import org.aztec.autumn.common.utils.concurrent.SynchronizerFactory;
+import org.aztec.autumn.common.utils.concurrent.SynchronizerFactory.SynchronizerNames;
 
 import com.beust.jcommander.internal.Lists;
 
@@ -16,11 +17,11 @@ public class ConcurrentTest {
 	
 	private static Integer startData = 0;
 	private static AtomicInteger atomData = new AtomicInteger(startData);
-	private static NoLockDataSynchronizer synchronizer = new InMemorySynchronizer();
+	private static NoLockDataSynchronizer synchronizer = SynchronizerFactory.getSynchronizer(SynchronizerNames.MEMORY);
 	private static Random random = new Random();
 	private static String uuid;
 	//1. 完全无锁 . 2.对象锁 3.CAS无锁 4.新无锁并发
-	private static int mode = 4;
+	private static int mode = 2;
 	private static int modulus = 6;
 	private static final long BUSSINESS_COST = 100l;
 	public ConcurrentTest() {
@@ -45,8 +46,9 @@ public class ConcurrentTest {
 			for(TestSafeThread t : tList) {
 				t.join();
 			}
+			Integer result = TestSafeThread.getResult();
 			Long useTIme = System.currentTimeMillis() - curTime;
-			System.out.println("finalResult:" + TestSafeThread.getResult() + " use time:" + useTIme);
+			System.out.println("finalResult:" + result + " use time:" + useTIme);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

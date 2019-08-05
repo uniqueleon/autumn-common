@@ -27,6 +27,11 @@ public class NoLockException extends Exception {
 		super("ERROR:" + errorCode);
 		this.errorCode = errorCode;
 	}
+	
+	public NoLockException(int errorCode,Throwable t) {
+		super("ERROR:" + errorCode,t);
+		this.errorCode = errorCode;
+	}
 
 	public NoLockException(String message) {
 		super(message);

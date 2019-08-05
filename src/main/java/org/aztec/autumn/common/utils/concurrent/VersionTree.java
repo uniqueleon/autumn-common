@@ -10,4 +10,5 @@ public interface VersionTree {
 	public void merge() throws NoLockException;
 	public List<VersionedNode> getLeafs();
 	public VersionedNode getRoot();
+	public String getUUID();
 }

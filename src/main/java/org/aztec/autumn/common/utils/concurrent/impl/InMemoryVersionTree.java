@@ -14,9 +14,9 @@ import com.google.common.collect.Maps;
 public class InMemoryVersionTree implements VersionTree{
 	
 
-	private final Object rootLock = new Object();
-	private VersionedNode root;
-	private final Map<String,VersionedNode> allNodes = Maps.newConcurrentMap();
+	protected final Object rootLock = new Object();
+	protected VersionedNode root;
+	protected final Map<String,VersionedNode> allNodes = Maps.newConcurrentMap();
 
 	public InMemoryVersionTree() {
 		// TODO Auto-generated constructor stub
@@ -112,6 +112,11 @@ public class InMemoryVersionTree implements VersionTree{
 
 	public Map<String, VersionedNode> getAllNodes() {
 		return allNodes;
+	}
+
+	@Override
+	public String getUUID() {
+		return root.getData().getUUID();
 	}
 
 

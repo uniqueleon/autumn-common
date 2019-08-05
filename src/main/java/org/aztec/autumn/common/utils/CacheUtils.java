@@ -13,10 +13,11 @@ public interface CacheUtils {
 	public void hset(String setName,Map<String,String> setMap) throws CacheException;
 	public void hset(String setName,String field,String vaule) throws CacheException;
 	public String hget(String setName,String field) throws CacheException;
-	public void hdel(String setName,String field,String value) throws CacheException;
+	public void hdel(String setName,String field) throws CacheException;
 	public Map<String,String> hgetAll(String setName) throws CacheException;
 	public List<String> hkeys(String setName) throws CacheException;
 	public List<String> hvals(String setName)  throws CacheException;
+	public boolean hexists(String setName,String field) throws CacheException;
 	public void hdel(String set,String... field) throws CacheException;
 	public void hdelAll(String set) throws CacheException;
 	public void lset(String list,int index,String value) throws CacheException;

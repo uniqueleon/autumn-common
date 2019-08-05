@@ -1,55 +1,40 @@
 package org.aztec.autumn.common.utils.concurrent.impl;
 
-import java.util.Map;
-
 import org.aztec.autumn.common.utils.concurrent.NoLockDataSynchronizer;
 import org.aztec.autumn.common.utils.concurrent.NoLockException;
 import org.aztec.autumn.common.utils.concurrent.Synchronizable;
+import org.aztec.autumn.common.utils.concurrent.VersionForest;
 import org.aztec.autumn.common.utils.concurrent.VersionTree;
 import org.aztec.autumn.common.utils.concurrent.VersionedNode;
-import org.aztec.autumn.common.utils.concurrent.NoLockException.ErrorCodes;
-
-import com.google.common.collect.Maps;
+import org.aztec.autumn.common.utils.concurrent.VersionedNodeFactory;
 
 public class InMemorySynchronizer implements NoLockDataSynchronizer{
 	
-	public static final Map<String,VersionTree> forest = Maps.newHashMap();
+	//private static final Map<String,VersionTree> forest = Maps.newHashMap();
+	
 
-	public InMemorySynchronizer() {
+	private VersionForest forest;
+	private VersionedNodeFactory nodeFactory;
+
+	public InMemorySynchronizer(VersionForest forest,VersionedNodeFactory nodeFactory) {
 		// TODO Auto-generated constructor stub
+		this.forest = forest;
+		this.nodeFactory = nodeFactory;
 	}
 
 	@Override
 	public Synchronizable synchronize(Synchronizable target) throws NoLockException {
 		// TODO Auto-generated method stub
-		if(!forest.containsKey(target.getUUID())) {
+		if(!forest.isTreeExists(target.getUUID())) {
 			synchronized(forest){
-				if(!forest.containsKey(target.getUUID())) {
-					VersionTree tree  = new InMemoryVersionTree();
-					VersionedNode newNode = new InMemoryTreeNode(target);
-					newNode = tree.addNode(newNode);
-					forest.put(target.getUUID(), tree);
-					return newNode.getData().cloneThis();
+				if(!forest.isTreeExists(target.getUUID())) {
+					VersionTree tree = forest.buildIfNotExist(target);
+					return tree.getNewestNode().getData();
 				}
 			}
 		}
-		VersionTree tree = forest.get(target.getUUID());
-		VersionedNode root = tree.getRoot();
-		VersionedNode newNode = new InMemoryTreeNode(target);
-		if(root == null) {
-			try {
-				newNode = tree.addNode(newNode);
-				return newNode.getData().cloneThis();
-			} catch (NoLockException e) {
-				if(e.getErrorCode() == ErrorCodes.PARENT_NOT_EXISTS) {
-					newNode = tree.getNewestNode();
-					return newNode.getData().cloneThis();
-				}
-				else {
-					throw e;
-				}
-			}
-		}
+		VersionTree tree = forest.findTree(target.getUUID());
+		VersionedNode newNode = nodeFactory.createNode(target);
 		if(!target.isSynchronized()) {
 			if(target.getPerviousVersion() == null) {
 				return tree.getNewestNode().getData().cloneThis();
@@ -81,15 +66,15 @@ public class InMemorySynchronizer implements NoLockDataSynchronizer{
 	
 
 	@Override
-	public void release(Synchronizable target) {
-		forest.remove(target.getUUID());
+	public void release(Synchronizable target) throws NoLockException {
+		forest.removeTree(target.getUUID());
 	}
 
 
 	@Override
 	public Synchronizable getNewestVersion(String uuid) throws NoLockException {
-		if(forest.containsKey(uuid)){
-			VersionTree tree = forest.get(uuid);
+		if(forest.isTreeExists(uuid)){
+			VersionTree tree = forest.findTree(uuid);
 			return tree.getNewestNode().getData().cloneThis();
 		}
 		return null;
@@ -97,8 +82,8 @@ public class InMemorySynchronizer implements NoLockDataSynchronizer{
 
 	@Override
 	public void merge(String uuid) throws NoLockException {
-		if(forest.containsKey(uuid)){
-			VersionTree tree = forest.get(uuid);
+		if(forest.isTreeExists(uuid)){
+			VersionTree tree = forest.findTree(uuid);
 			tree.merge();
 		}
 	}
