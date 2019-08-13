@@ -1,12 +1,16 @@
 package org.aztec.autumn.common.utils.cache;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.aztec.autumn.common.utils.BitSetUtil;
 import org.aztec.autumn.common.utils.CacheException;
 import org.aztec.autumn.common.utils.CacheUtils;
 import org.aztec.autumn.common.utils.JsonUtils;
@@ -17,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import redis.clients.jedis.BitPosParams;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
@@ -39,7 +44,6 @@ public class RedisUtil implements CacheUtils{
 	private String password = null;
 	private static final Map<String,Object> locks = Maps.newConcurrentMap();
 	private static LockChecker checker = null;
-	
 	
 
 	public RedisUtil(String host,Integer port){
@@ -75,13 +79,14 @@ public class RedisUtil implements CacheUtils{
 	public void connect(){
 		if(redisClient == null){
 			if(hosts.size() == 1){
-				Jedis jc = new Jedis(hosts.get(0), ports.get(0));
-				if(password != null && !password.isEmpty())
-					jc.auth(password);
-				redisClient = jc;
+				/*
+				 * Jedis jc = new Jedis(hosts.get(0), ports.get(0)); if(password != null &&
+				 * !password.isEmpty()) jc.auth(password); redisClient = jc;
+				 */
 				//redisClient.set(jc);
 				isStarted = true;
-				JedisPool pool = new JedisPool(hosts.get(0), ports.get(0));
+				JedisPool pool = new JedisPool(new GenericObjectPoolConfig(),hosts.get(0),ports.get(0),10000,password);
+				redisClient = pool.getResource();
 				pools.add(pool);
 			}
 			else{
@@ -469,5 +474,145 @@ public class RedisUtil implements CacheUtils{
 			return redisClient.hexists(setName, field);
 		}
 	}
+
+	@Override
+	public void setBit(String key, long offset, boolean value) throws CacheException {
+		synchronized (redisClient) {
+			redisClient.setbit(key, offset, value);
+		}
+	}
+
+	@Override
+	public boolean isBitSet(String key, long offset) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.getbit(key, offset);
+		}
+	}
+
+	@Override
+	public boolean setBitWhileUnset(String key, long offset, boolean value) throws CacheException {
+		synchronized (redisClient) {
+			if(redisClient.getbit(key, offset) != value) {
+				redisClient.setbit(key, offset, value);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Long bitpos(String key, boolean value) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.bitpos(key, value);
+		}
+	}
+
+	@Override
+	public List<Long> getAllSetBits(String key) throws CacheException {
+		List<Long> retPos = Lists.newArrayList();
+		BitPosParams param = new BitPosParams(0);
+		String redisValue = null;
+		//Long beginTime = System.currentTimeMillis();
+		synchronized (redisClient) {
+			redisValue = redisClient.get(key);
+		}
+		if(redisValue == null) {
+			return retPos;
+		}
+		byte[] readBytes = revertBytes(redisValue.getBytes());
+		BitSet bs = BitSet.valueOf(readBytes);
+		for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i+1)) {
+		     retPos.add(new Long(i));
+		     if (i == Integer.MAX_VALUE) {
+		         break; 
+		     }
+		}
+		//System.out.println("use time:" + (System.currentTimeMillis() - beginTime));
+		return retPos;
+	}
+	
+	private byte[] revertBytes(byte[] oriBytes) {
+		byte[] newByte = new byte[oriBytes.length];
+		for(int i = 0;i < oriBytes.length;i++) {
+			newByte[i] = revert(oriBytes[i]);
+		}
+		return newByte;
+	}
+	
+	private byte revert(byte targetByte) {
+		byte newByte = 0;
+		for(int i = 0;i < 8;i++) {
+			int mask = 1 << (7 - i);
+			int value = targetByte & mask;
+			if(value > 0) {
+				newByte |= (1 << i);
+			}
+		}
+		return newByte;
+	}
+
+	@Override
+	public Long bitcount(String key) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.bitcount(key);
+		}
+	}
+
+	private byte[] toRedisBytes(List<Long> positions) {
+		List<Integer> byteList = Lists.newArrayList();
+		for(int i = 0;i < positions.size();i++) {
+			Long pos = positions.get(i);
+			int byteNo = pos.intValue() / 8;
+			if(byteNo >= byteList.size()) {
+				int diff = (byteNo  + 1 )- byteList.size();
+				for(int j = 0;j < diff;j++) {
+					byteList.add(0);
+				}
+			}
+			int bytePos = pos.intValue() % 8;
+			Integer targetByte = byteList.get(byteNo);
+			int value = (1 << (7 - bytePos));
+			targetByte = targetByte | value;
+			byteList.set(byteNo, targetByte);
+		}
+		byte[] retBytes = new byte[byteList.size()];
+		for(int i = 0;i < byteList.size();i++) {
+			retBytes[i] = byteList.get(i).byteValue();
+		}
+		return retBytes;
+	}
+	
+	@Override
+	public boolean mergeBit(String key, String otherKey) throws CacheException {
+		// TODO Auto-generated method stub
+		if(exists(key) && exists(otherKey)) {
+			List<Long> thisBits = getAllSetBits(key);
+			List<Long> otherBits = getAllSetBits(otherKey);
+			
+			for(int i = 0;i < otherBits.size();i++) {
+				Long newBit = otherBits.get(i);
+				if(!thisBits.contains(newBit)) {
+					thisBits.add(newBit);
+				}
+			}
+			String writeContent = new String(toRedisBytes(thisBits));
+			cache(key, writeContent);
+		}
+		return false;
+	}
+
+	@Override
+	public boolean isIntersected(String key, String otherKey) throws CacheException {
+
+		List<Long> thisBits = getAllSetBits(key);
+		List<Long> otherBits = getAllSetBits(otherKey);
+		for(Long otherBit : otherBits) {
+			if(thisBits.contains(otherBit)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	
 }

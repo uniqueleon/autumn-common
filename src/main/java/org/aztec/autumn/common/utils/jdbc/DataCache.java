@@ -22,8 +22,9 @@ public class DataCache {
 	
 	public DataCache(){
 
-    Thread maintainer = new CacheMaintainer();
-    maintainer.start();
+		/*
+		 * Thread maintainer = new CacheMaintainer(); maintainer.start();
+		 */
 	}
 
 	public boolean isHit(String querySql,Object[] params) {

@@ -121,13 +121,14 @@ public abstract class ZkNode implements DataMonitorListener{
 	}
 	
 	public void write(String newData) throws UnsupportedEncodingException, KeeperException, InterruptedException {
-		if(zk.exists(znode, false) == null){
+		stat = zk.exists(znode, true);
+		if(stat == null){
 			List<ACL> aclList = new ArrayList<>();
 			aclList.add(new ACL(ZooDefs.Perms.ALL, ZooDefs.Ids.AUTH_IDS));
 			zk.create(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET),aclList,CreateMode.PERSISTENT);
 		}
 		this.dataStr = newData;
-		zk.setData(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET), getDataVarsion());
+		stat = zk.setData(znode, newData.getBytes(GlobalConst.DEFAULT_CHARSET), getDataVarsion());
 	}
 	
 	protected abstract void notifyChanges() throws Exception;

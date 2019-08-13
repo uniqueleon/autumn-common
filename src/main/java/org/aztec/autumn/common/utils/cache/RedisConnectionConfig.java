@@ -10,6 +10,8 @@ public class RedisConnectionConfig extends DatabasePropertiesConfig {
 	private String hosts;
 	@Property("ports")
 	private String ports;
+	@Property("password")
+	private String password;
 
 	public RedisConnectionConfig() throws Exception {
 		super(GlobalConst.META_DATA_CENTER_INFO.REDIS_CONNECT_QUERY_SQL,
@@ -32,6 +34,14 @@ public class RedisConnectionConfig extends DatabasePropertiesConfig {
 
 	public void setPorts(String ports) {
 		this.ports = ports;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
 }

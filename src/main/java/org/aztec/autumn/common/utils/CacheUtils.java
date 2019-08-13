@@ -33,4 +33,12 @@ public interface CacheUtils {
 	public void lock(String key,long timeout) throws CacheException;
 	public boolean tryLock(String key,long timeout) throws CacheException;
 	public void unlock(String key) throws CacheException;
+	public void setBit(String key,long offset,boolean value) throws CacheException;
+	public boolean isBitSet(String key,long offset) throws CacheException;
+	public boolean setBitWhileUnset(String key,long offset,boolean value) throws CacheException;
+	public Long bitpos(String key,boolean value)throws CacheException;
+	public Long bitcount(String key) throws CacheException;
+	public List<Long> getAllSetBits(String key) throws CacheException;
+	public boolean mergeBit(String key,String otherKey)throws CacheException;
+	public boolean isIntersected(String key,String otherKey)throws CacheException;
 }

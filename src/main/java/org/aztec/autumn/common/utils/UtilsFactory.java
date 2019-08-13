@@ -89,7 +89,12 @@ public class UtilsFactory {
 		for(int i = 0;i < cachePortArr.length;i++){
 			ports[i] = Integer.parseInt(cachePortArr[i]);
 		}
-		return getCacheUtils(cacheServer, ports);
+		if(config.getPassword() != null) {
+			return getCacheUtils(cacheServer, ports,config.getPassword());
+		}
+		else {
+			return getCacheUtils(cacheServer, ports);
+		}
 	}
 	
 	public CacheUtils getCacheUtils(String[] cacheServers,Integer[] ports){
