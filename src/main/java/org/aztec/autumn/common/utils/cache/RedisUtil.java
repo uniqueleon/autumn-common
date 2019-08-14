@@ -1,16 +1,13 @@
 package org.aztec.autumn.common.utils.cache;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.math.RandomUtils;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.aztec.autumn.common.utils.BitSetUtil;
+import org.apache.commons.pool2.PooledObject;
 import org.aztec.autumn.common.utils.CacheException;
 import org.aztec.autumn.common.utils.CacheUtils;
 import org.aztec.autumn.common.utils.JsonUtils;
@@ -22,7 +19,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import redis.clients.jedis.BitPosParams;
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCommands;
@@ -46,16 +42,18 @@ public class RedisUtil implements CacheUtils{
 	private static LockChecker checker = null;
 	
 
-	public RedisUtil(String host,Integer port){
+	public RedisUtil(String host,Integer port,String password){
 		this.hosts.add(host);
 		this.ports.add(port);
+		this.password = password;
+		RedisPool.createPool(this.hosts, this.ports, password);
 	}
 	
 	public void setPassword(String password) {
 		this.password = password;
 	}
 	
-	public RedisUtil(String[] hosts, Integer[] ports){
+	public RedisUtil(String[] hosts, Integer[] ports,String password){
 		if(hosts.length != ports.length)
 			throw new IllegalArgumentException("Hosts' number not match with the ports'!");
 		for(String host : hosts)
@@ -73,36 +71,50 @@ public class RedisUtil implements CacheUtils{
 		for(Integer port : ports){
 			this.ports.add(port);
 		}
-		
+		this.password = password;
+		RedisPool.createPool(this.hosts, this.ports, password);
+	}
+	
+	public void disconnect() throws IOException {
+		if(redisClient instanceof Jedis) {
+			Jedis jedis = (Jedis) redisClient;
+			jedis.close();
+		}
+		else {
+			JedisCluster cluster = (JedisCluster) redisClient;
+			cluster.close();
+		}
 	}
 	
 	public void connect(){
 		if(redisClient == null){
-			if(hosts.size() == 1){
-				/*
-				 * Jedis jc = new Jedis(hosts.get(0), ports.get(0)); if(password != null &&
-				 * !password.isEmpty()) jc.auth(password); redisClient = jc;
-				 */
-				//redisClient.set(jc);
-				isStarted = true;
-				JedisPool pool = new JedisPool(new GenericObjectPoolConfig(),hosts.get(0),ports.get(0),10000,password);
-				redisClient = pool.getResource();
-				pools.add(pool);
-			}
-			else{
-				Set<HostAndPort> clusterConfig = new HashSet<>();
-				for (int i = 0; i < hosts.size(); i++) {
-					clusterConfig.add(new HostAndPort(hosts.get(i), ports.get(i)));
-					JedisPool pool = new JedisPool(hosts.get(i), ports.get(i));
-					pools.add(pool);
-				}
-				JedisCluster jc = new JedisCluster(clusterConfig);
-				if(password != null && !password.isEmpty())
-					jc.auth(password);
-				//redisClient.set(jc);
-				redisClient = jc;
-				isStarted = true;
-			}
+			redisClient = RedisPool.getRedisClient(hosts, ports, password);
+			isStarted = true;
+//			if(hosts.size() == 1){
+//				/*
+//				 * Jedis jc = new Jedis(hosts.get(0), ports.get(0)); if(password != null &&
+//				 * !password.isEmpty()) jc.auth(password); redisClient = jc;
+//				 */
+//				//redisClient.set(jc);
+//				isStarted = true;
+//				JedisPool pool = new JedisPool(new GenericObjectPoolConfig(),hosts.get(0),ports.get(0),10000,password);
+//				redisClient = pool.getResource();
+//				pools.add(pool);
+//			}
+//			else{
+//				Set<HostAndPort> clusterConfig = new HashSet<>();
+//				for (int i = 0; i < hosts.size(); i++) {
+//					clusterConfig.add(new HostAndPort(hosts.get(i), ports.get(i)));
+//					JedisPool pool = new JedisPool(hosts.get(i), ports.get(i));
+//					pools.add(pool);
+//				}
+//				JedisCluster jc = new JedisCluster(clusterConfig);
+//				if(password != null && !password.isEmpty())
+//					jc.auth(password);
+//				//redisClient.set(jc);
+//				redisClient = jc;
+//				isStarted = true;
+//			}
 		}
 		startLockChecker();
 	}
@@ -224,6 +236,7 @@ public class RedisUtil implements CacheUtils{
 		synchronized (redisClient) {
 			redisClient.del(key);
 		}
+		//redisClient.
 		//redisClient.get().del(key);
 	}
 
@@ -613,6 +626,22 @@ public class RedisUtil implements CacheUtils{
 		}
 		return false;
 	}
+
+	@Override
+	public void close() throws CacheException {
+		try {
+			disconnect();
+		} catch (IOException e) {
+			throw new CacheException(e.getMessage(),e);
+		}
+	}
 	
-	
+	public boolean isUsable() {
+		return isStarted;
+	}
+
+	@Override
+	public String getPoolKey() {
+		return RedisUtilFactory.getPoolKey(hosts, ports);
+	}
 }

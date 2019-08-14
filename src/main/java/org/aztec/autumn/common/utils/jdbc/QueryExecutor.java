@@ -1,5 +1,6 @@
 package org.aztec.autumn.common.utils.jdbc;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -16,4 +17,5 @@ public interface QueryExecutor {
   public void rollback() throws SQLException;
 	public void reconnect() throws SQLException;
 	public void closeConnection() throws SQLException;
+	public Connection getConnection() throws SQLException;
 }

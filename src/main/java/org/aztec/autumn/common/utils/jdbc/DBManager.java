@@ -43,7 +43,8 @@ public class DBManager {
 	}
 	
 	public void disconnect() throws SQLException, ClassNotFoundException{
-		queryExec.closeConnection();
+		connector.releaseConnection(queryExec.getConnection());
+		//queryExec.closeConnection();
 	}
 	
 	public QueryExecutor reconnect(int tryTime) throws SQLException{

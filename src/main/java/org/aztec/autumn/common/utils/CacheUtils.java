@@ -7,6 +7,7 @@ import org.aztec.autumn.common.utils.cache.CacheDataSubscriber;
 
 public interface CacheUtils {
 
+	public String getPoolKey();
 	public boolean exists(String key) throws CacheException;
 	public void cache(String key, Object value) throws CacheException;
 	public void cacheInTTL(String key, Object value, int seconds) throws CacheException;
@@ -41,4 +42,5 @@ public interface CacheUtils {
 	public List<Long> getAllSetBits(String key) throws CacheException;
 	public boolean mergeBit(String key,String otherKey)throws CacheException;
 	public boolean isIntersected(String key,String otherKey)throws CacheException;
+	public void close() throws CacheException;
 }

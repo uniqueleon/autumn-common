@@ -1,6 +1,11 @@
 package org.aztec.autumn.common.utils;
 
+import java.util.List;
+import java.util.UUID;
+
 import org.aztec.autumn.common.utils.cache.CacheDataSubscriber;
+
+import com.beust.jcommander.internal.Lists;
 
 public class RedisTest {
 	
@@ -74,12 +79,59 @@ public class RedisTest {
 			//startSubscriber();
 			//testPublish();
 			//testSetBit();
-			testMergeBit();
-			System.out.println(0 | 8);
+//			testMergeBit();
+//			System.out.println(0 | 8);
+			//System.setProperty("system","res:base.properties");
+			PerformanceTest(100,200);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+	}
+	
+	public static void PerformanceTest(int testTime,int testThread) throws InterruptedException {
+		Long beginTime = System.currentTimeMillis();
+		List<PerformanceTester> perThreads = Lists.newArrayList();
+		for(int i = 0;i < testThread;i++) {
+			PerformanceTester tester = new PerformanceTester(testTime);
+			tester.start();
+			perThreads.add(tester);
+		}
+		for(PerformanceTester tester : perThreads) {
+			tester.join();
+		}
+		System.out.println("use time:" + (System.currentTimeMillis() - beginTime));
+	}
+	
+	public static class PerformanceTester extends Thread{
+		
+		
+		String cacheKey;
+		private int testTime;
+		
+		public PerformanceTester(int testTime) {
+			cacheKey = UUID.randomUUID().toString();
+			this.testTime = testTime;
+		}
+
+		@Override
+		public void run() {
+			try {
+				CacheUtils util = UtilsFactory.getInstance().getDefaultCacheUtils();
+				for(int i = 0;i < testTime;i++) {
+					util.cache(cacheKey, StringUtils.getRandomCharNumberString(100));
+					//Thread.sleep(1);
+					util.remove(cacheKey);
+				}
+				UtilsFactory.getInstance().releaseCacheUtils(util);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		
 		
 	}
 	
