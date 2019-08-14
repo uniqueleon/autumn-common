@@ -6,8 +6,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.math.RandomUtils;
-import org.apache.commons.pool2.PooledObject;
 import org.aztec.autumn.common.utils.CacheException;
 import org.aztec.autumn.common.utils.CacheUtils;
 import org.aztec.autumn.common.utils.JsonUtils;
@@ -22,7 +20,6 @@ import redis.clients.jedis.BitPosParams;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCommands;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class RedisUtil implements CacheUtils{
@@ -32,7 +29,6 @@ public class RedisUtil implements CacheUtils{
 	private static boolean isStarted = false;
 	private List<String> hosts = new ArrayList<>();
 	private List<Integer> ports = new ArrayList<>();
-	private List<JedisPool> pools = Lists.newCopyOnWriteArrayList();
 	//private static ThreadLocal<JedisCommands> redisClient = new ThreadLocal<>();
 	//private static JedisCommands redisClient;
 	private JedisCommands redisClient;
@@ -46,7 +42,7 @@ public class RedisUtil implements CacheUtils{
 		this.hosts.add(host);
 		this.ports.add(port);
 		this.password = password;
-		RedisPool.createPool(this.hosts, this.ports, password);
+		RedisPool.newPool(this.hosts, this.ports, password);
 	}
 	
 	public void setPassword(String password) {
@@ -72,7 +68,7 @@ public class RedisUtil implements CacheUtils{
 			this.ports.add(port);
 		}
 		this.password = password;
-		RedisPool.createPool(this.hosts, this.ports, password);
+		RedisPool.newPool(this.hosts, this.ports, password);
 	}
 	
 	public void disconnect() throws IOException {
@@ -251,22 +247,26 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public void publish(String channel, String msg) throws CacheException {
 		
-		if(pools.size() == 0) {
-			throw new CacheException("No redis pool found!");
+		synchronized (redisClient) {
+			if(redisClient instanceof Jedis) {
+				Jedis jedis = (Jedis) redisClient;
+				jedis.publish(channel, msg);
+			} else {
+				JedisCluster jc = (JedisCluster) redisClient;
+				jc.publish(channel, msg);
+			}
 		}
-		
-		int randomIndex = RandomUtils.nextInt(pools.size());
-		Jedis jedis = pools.get(randomIndex).getResource();
-		jedis.publish(channel, msg);
-		jedis.close();
+//		int randomIndex = RandomUtils.nextInt(pools.size());
+//		Jedis jedis = pools.get(randomIndex).getResource();
+//		jedis.publish(channel, msg);
+//		pools.get(randomIndex).returnResource(jedis);
+		//jedis.close();
 	}
 
 	@Override
 	public void subscribe(CacheDataSubscriber subscriber,String...channels) throws CacheException {
-		for(JedisPool pool : pools) {
-			AsyncSubscriber ayncSub = new AsyncSubscriber(pool, subscriber, channels);
-			ayncSub.start();
-		}
+		AsyncSubscriber ayncSub = new AsyncSubscriber(hosts,ports,password, subscriber, channels);
+		ayncSub.start();
 	}
 
 	@Override

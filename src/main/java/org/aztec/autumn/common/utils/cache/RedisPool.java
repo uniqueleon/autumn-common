@@ -8,6 +8,8 @@ import java.util.Set;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
+import com.beust.jcommander.internal.Lists;
+import com.beust.jcommander.internal.Sets;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 
@@ -26,7 +28,42 @@ public class RedisPool {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public static void createPool(List<String> hosts,List<Integer> ports,String password) {
+	public static List<JedisPool> getPool(List<String> hosts,List<Integer> ports) {
+		List<JedisPool> retPools = Lists.newArrayList();
+		for(int i = 0;i < hosts.size();i++) {
+			String host = hosts.get(i);
+			Integer port = ports.get(i);
+			HostAndPort hp = new HostAndPort(host, port);
+			if(pools.containsKey(hp)) {
+				retPools.add(pools.get(hp));
+			}
+		}
+		return retPools;
+	}
+	
+	public static JedisCluster createCluster(List<String> hosts,List<Integer> ports,String password) {
+		if(hosts.size() != ports.size()) {
+			throw new IllegalArgumentException("hosts and ports information not matched!");
+		}
+		JedisCluster cluster;
+		Set<HostAndPort> hps = Sets.newHashSet();
+		for(int i = 0;i < hosts.size();i++) {
+			String host = hosts.get(i);
+			Integer port = ports.get(i);
+			HostAndPort hp = new HostAndPort(host, port);
+			hps.add(hp);
+		}
+		cluster = new JedisCluster(hps);
+		return cluster;
+	}
+	
+	public static JedisPool createPool(String host,Integer port,String password) {
+		HostAndPort hp = new HostAndPort(host, port);
+		JedisPool pool = new JedisPool(new GenericObjectPoolConfig(),host,port,10000,password);
+		return pool;
+	}
+	
+	public static void newPool(List<String> hosts,List<Integer> ports,String password) {
 		if(hosts.size() != ports.size()) {
 			throw new IllegalArgumentException("hosts and ports information not matched!");
 		}
@@ -50,7 +87,7 @@ public class RedisPool {
 			HostAndPort hp = new HostAndPort(hosts.get(0), ports.get(0));
 			JedisPool pool = pools.get(hp);
 			if(pool == null) {
-				createPool(hosts, ports, password);
+				newPool(hosts, ports, password);
 			}
 			return pools.get(hp).getResource();
 		}

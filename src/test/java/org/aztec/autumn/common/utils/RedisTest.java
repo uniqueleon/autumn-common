@@ -124,7 +124,6 @@ public class RedisTest {
 					//Thread.sleep(1);
 					util.remove(cacheKey);
 				}
-				UtilsFactory.getInstance().releaseCacheUtils(util);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

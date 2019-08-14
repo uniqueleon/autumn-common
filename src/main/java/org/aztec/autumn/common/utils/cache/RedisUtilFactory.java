@@ -69,7 +69,7 @@ public class RedisUtilFactory implements PooledObjectFactory<RedisUtil> {
 
 	@Override
 	public void passivateObject(PooledObject<RedisUtil> p) throws Exception {
-		p.getObject().disconnect();
+		//p.getObject().disconnect();
 	}
 
 }
