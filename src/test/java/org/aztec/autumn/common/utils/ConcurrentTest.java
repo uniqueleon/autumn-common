@@ -21,7 +21,7 @@ public class ConcurrentTest {
 	private static Random random = new Random();
 	private static String uuid;
 	//1. 完全无锁 . 2.对象锁 3.CAS无锁 4.新无锁并发
-	private static int mode = 2;
+	private static int mode = 4;
 	private static int modulus = 6;
 	private static final long BUSSINESS_COST = 100l;
 	public ConcurrentTest() {
@@ -153,8 +153,11 @@ public class ConcurrentTest {
 		}
 		
 		public void runInNewNoLock() throws NoLockException, InterruptedException {
-			Synchronizable<Integer> syncData = new IntegerMergible(startData.intValue(), uuid,new int[] {index},index);
-			syncData = synchronizer.synchronize(syncData);
+			Synchronizable<Integer> syncData = synchronizer.getNewestVersion(uuid);
+			if(syncData == null) {
+				syncData = new IntegerMergible(startData.intValue(), uuid,new int[] {index},index);
+				syncData = synchronizer.synchronize(syncData);
+			}
 			//同步过数据后，index值可能被更新了，于是需要重新设置
 			IntegerMergible cloneOne = syncData.cast();
 			cloneOne.setIndex(index);
@@ -179,7 +182,7 @@ public class ConcurrentTest {
 		}
 
 		@Override
-		public void merge(Synchronizable<Integer> otherNode) {
+		public void merge(Synchronizable<Integer> otherNode,Synchronizable<Integer> conflictNode) {
 			Integer thisOne = this.getData();
 			IntegerMergible othr = otherNode.cast();
 			Integer otherOne = othr.getAddValue();
@@ -203,16 +206,6 @@ public class ConcurrentTest {
 			return int1.index != index && isValid(data,int1.index);
 		}
 
-		@Override
-		public Synchronizable<Integer> cloneThis() {
-			IntegerMergible newOne=  new IntegerMergible(getData().intValue(), uuid, slots, index);
-			newOne.dept = dept;
-			newOne.oldData = oldData;
-			newOne.previousVersion = previousVersion;
-			newOne.synchorized = synchorized;
-			newOne.version = version;
-			return newOne;
-		}
 
 		public int getIndex() {
 			return index;
@@ -220,6 +213,11 @@ public class ConcurrentTest {
 
 		public void setIndex(int index) {
 			this.index = index;
+		}
+
+		@Override
+		public AbstractSynchronizableData<Integer> cloneFromThis() {
+			return new IntegerMergible(index, previousVersion, slots, index);
 		}
 		
 	}

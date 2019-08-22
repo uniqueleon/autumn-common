@@ -12,6 +12,8 @@ public class NoLockException extends Exception {
 		public static final int DATA_EXPIRED = 3;
 		public static final int PARENT_NOT_EXISTS = 4;
 		public static final int DATA_HAS_NOT_SYNCHRONIZED = 5;
+		public static final int DIFFERENCE_TREE = 6;
+		public static final int UNSUPPORT_OPERATION = 99;
 		public static final int UNKONW_ERROR = -1;
 	}
 

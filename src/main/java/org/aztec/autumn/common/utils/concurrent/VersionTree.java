@@ -9,6 +9,11 @@ public interface VersionTree {
 	public VersionedNode getNewestNode() throws NoLockException;
 	public void merge() throws NoLockException;
 	public List<VersionedNode> getLeafs();
+	public <T> VersionedNode createNode(Synchronizable<T> data)throws NoLockException;
 	public VersionedNode getRoot();
+	public VersionedNode findBranchNode(String version1,String version2)throws NoLockException;
 	public String getUUID();
+	public boolean isEmpty();
+	public Long getSize();
+	public VersionedNodeFactory getNodeFactory();
 }

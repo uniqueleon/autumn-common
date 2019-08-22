@@ -11,7 +11,7 @@ public interface NoLockDataSynchronizer {
 	public Synchronizable synchronize(Synchronizable target) throws NoLockException;
 
 	/**
-	 * 将目标对象从同步对象池中释放
+	 * 将目标对象从同步对象池中释放，当同步对象已经使用完毕，请记得释放，以节省存储空间
 	 * @param target
 	 * @throws NoLockException
 	 */
@@ -29,6 +29,22 @@ public interface NoLockDataSynchronizer {
 	 * @throws NoLockException
 	 */
 	public void merge(String uuid) throws NoLockException;
+	
+	/**
+	 * 获取产生冲突的版本，如果无冲突则返回空，非线程安全
+	 * @param <T>
+	 * @param s1
+	 * @param s2
+	 * @return
+	 * @throws NoLockException
+	 */
+	public <T> Synchronizable<T> getConflictVersion(Synchronizable<T> s1,Synchronizable<T> s2) throws NoLockException;
 
+	/**
+	 * 获取所有版本数据的数量,非线程安全
+	 * @return
+	 * @throws NoLockException
+	 */
+	public Long getVersionedDataSize(String uuid) throws NoLockException;
 	public static final int DEFAULT_VERSION_LENGTH = 36;
 }

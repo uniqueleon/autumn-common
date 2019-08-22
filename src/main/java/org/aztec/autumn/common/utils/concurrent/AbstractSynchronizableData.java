@@ -16,14 +16,9 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 	protected String previousVersion;
 	protected int dept;
 	protected boolean synchorized = false;
+	protected boolean updated = false;
+	private static final String UUID_PREFIX = "NO_LOCK_SYNC_DATA_";
 	
-	public AbstractSynchronizableData(T data,int[] slots) {
-		this.data = data;
-		this.uuid = "" + data.hashCode();
-		this.version = generateVersion();
-		this.slots = slots;
-	}
-
 	public AbstractSynchronizableData(T data,String uuid,int[] slots) {
 		this.data = data;
 		this.uuid = uuid;
@@ -61,7 +56,7 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 	}
 
 	@Override
-	public String getUUID() {
+	public String getUuid() {
 		return uuid;
 	}
 
@@ -95,14 +90,6 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 		BitSet bs1 = BitSetUtil.array2BitSet(slots);
 		BitSet bs2 = BitSetUtil.array2BitSet(otherSlots);
 		return bs1.intersects(bs2);
-	}
-
-	public String getUuid() {
-		return uuid;
-	}
-
-	public void setUuid(String uuid) {
-		this.uuid = uuid;
 	}
 
 	public int[] getSlots() {
@@ -139,11 +126,14 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 	public void update(T data) {
 		// TODO Auto-generated method stub
 		if(synchorized) {
-			this.oldData = data;
+			this.oldData = this.data;
 			this.data = data;
 			this.previousVersion = version;
 			version = generateVersion();
-			synchorized = false;
+			updated = true;
+		}
+		else {
+			throw new IllegalStateException("can't update a data which is not synchronized!");
 		}
 	}
 
@@ -166,6 +156,36 @@ public abstract class AbstractSynchronizableData<T> implements Synchronizable<T>
 	@Override
 	public <E extends Synchronizable<T>> E cast() {
 		return (E) this;
+	}
+
+	@Override
+	public void setUuid(String uuid) {
+		this.uuid = uuid;
+	}
+	
+
+	@Override
+	public boolean isUpdated() {
+		return updated;
+	}
+
+	@Override
+	public Synchronizable<T> cloneThis() {
+		AbstractSynchronizableData<T> newOne = cloneFromThis();
+		newOne.copyFromOther(this);
+		return newOne;
+	}
+	
+	public abstract AbstractSynchronizableData<T> cloneFromThis();
+
+	protected void copyFromOther(Synchronizable<T> source) {
+		this.dept = source.getDept();
+		this.previousVersion = source.getPerviousVersion();
+		this.version = source.getVersion();
+		this.synchorized = source.isSynchronized();
+		this.uuid = source.getUuid();
+		this.oldData = source.getOldData();
+		this.data = source.getData();
 	}
 
 	

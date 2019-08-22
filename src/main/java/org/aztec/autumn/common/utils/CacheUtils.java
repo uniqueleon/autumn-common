@@ -27,6 +27,8 @@ public interface CacheUtils {
 	public void lrem(String list,int index,String value) throws CacheException;
 	public void lremAll(String list) throws CacheException;
 	public String lget(String list,int index) throws CacheException;
+	public String lpop(String list) throws CacheException;
+	public Long hlen(String set)  throws CacheException;
 	public <T> T get(String key, Class<T> retType) throws CacheException;
 	public void remove(String key) throws CacheException;
 	public void publish(String channel,String msg) throws CacheException;
@@ -41,6 +43,7 @@ public interface CacheUtils {
 	public Long bitcount(String key) throws CacheException;
 	public List<Long> getAllSetBits(String key) throws CacheException;
 	public boolean mergeBit(String key,String otherKey)throws CacheException;
+	public boolean substract(String key,String otherKey) throws CacheException;
 	public boolean isIntersected(String key,String otherKey)throws CacheException;
 	public void close() throws CacheException;
 }

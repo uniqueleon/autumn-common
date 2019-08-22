@@ -6,7 +6,9 @@ import java.util.Map;
 import org.aztec.autumn.common.utils.concurrent.NoLockException;
 import org.aztec.autumn.common.utils.concurrent.VersionTree;
 import org.aztec.autumn.common.utils.concurrent.VersionedNode;
+import org.aztec.autumn.common.utils.concurrent.VersionedNodeFactory;
 import org.aztec.autumn.common.utils.concurrent.NoLockException.ErrorCodes;
+import org.aztec.autumn.common.utils.concurrent.Synchronizable;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Maps;
@@ -19,7 +21,6 @@ public class InMemoryVersionTree implements VersionTree{
 	protected final Map<String,VersionedNode> allNodes = Maps.newConcurrentMap();
 
 	public InMemoryVersionTree() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public VersionedNode addNode(VersionedNode node) throws NoLockException {
@@ -31,6 +32,11 @@ public class InMemoryVersionTree implements VersionTree{
 					root.setLeaf(true);
 					root.getData().setSynchronized(true);
 					allNodes.put(root.getData().getVersion(), root);
+					try {
+						root.persist();
+					} catch (Exception e) {
+						throw new NoLockException(ErrorCodes.UNKONW_ERROR,e);
+					}
 					return root;
 				}
 			}
@@ -48,6 +54,11 @@ public class InMemoryVersionTree implements VersionTree{
 		node.getData().setPreviousVersion(node.getParent().getData().getVersion());
 		node.getData().setSynchronized(true);
 		allNodes.put(node.getData().getVersion(), node);
+		try {
+			node.persist();
+		} catch (Exception e) {
+			throw new NoLockException(ErrorCodes.UNKONW_ERROR,e);
+		}
 		return node;
 	}
 	
@@ -79,13 +90,28 @@ public class InMemoryVersionTree implements VersionTree{
 	public void merge() throws NoLockException {
 		List<VersionedNode> leafs = getLeafs();
 		VersionedNode newNode = getNewestNode();
+		//VersionedNode newNode = leafs.get(0);
 		for(VersionedNode node : leafs) {
 			if(newNode.getData().getVersion().equals(node.getData().getVersion())){
 				continue;
 			}
 			if(newNode.getData().isMergable(node.getData())) {
-				newNode = newNode.merge(node);
-				newNode = addNode(newNode);
+				//VersionedNode conflictNode = findConflictNode(newNode, node);
+//				if(conflictNode == null) {
+//					continue;
+//				}
+				VersionedNode branchNode = findBranchNode(newNode, node);
+				VersionedNode createNode = newNode.merge(branchNode,node,getNodeFactory());
+				//conflictNode.setParent(newNode);
+				newNode.setLeaf(false);
+				try {
+					newNode.persist();
+					//conflictNode.persist();
+				} catch (Exception e) {
+					throw new NoLockException(ErrorCodes.UNKONW_ERROR,e);
+				}
+				createNode.setParent(newNode);
+				newNode = addNode(createNode);
 			}
 		}
 	}
@@ -116,9 +142,69 @@ public class InMemoryVersionTree implements VersionTree{
 
 	@Override
 	public String getUUID() {
-		return root.getData().getUUID();
+		return root.getData().getUuid();
+	}
+	
+	public VersionedNode findConflictNode(VersionedNode node1, VersionedNode node2){
+		List<VersionedNode> acestors1 = node1.getAncestors();
+		List<VersionedNode> acestors2 = node2.getAncestors();
+		for(int i = 0;i < acestors1.size();i++) {
+			VersionedNode acestor1 = acestors1.get(i);
+			for(int j = 0;j < acestors2.size();j++) {
+				VersionedNode acestor2 = acestors2.get(j);
+				if(acestor1.getData().getVersion().equals(acestor2.getData().getVersion())) {
+					return j > 0 ? acestors2.get(j - 1) : (!node2.getData().getVersion().equals(acestor1.getData().getVersion()) ? node2 : null);
+				}
+			}
+		}
+		return null;
+	}
+	
+	public VersionedNode findBranchNode(VersionedNode node1, VersionedNode node2) throws NoLockException {
+		
+		List<VersionedNode> acestors1 = node1.getAncestors();
+		List<VersionedNode> acestors2 = node2.getAncestors();
+		for(VersionedNode acestor1 : acestors1) {
+			for(VersionedNode acestor2 : acestors2) {
+				if(acestor1.getData().getVersion().equals(acestor2.getData().getVersion())) {
+					return acestor1;
+				}
+			}
+		}
+		return null;
 	}
 
+	@Override
+	public VersionedNode findBranchNode(String version1, String version2) throws NoLockException {
+		if(root.getData().getVersion().equals(version1)) {
+			throw new NoLockException(ErrorCodes.UNSUPPORT_OPERATION);
+		}
+		if(!version1.equals(version2)) {
+			VersionedNode node1 = findNodeByVersion(version1);
+			VersionedNode node2 = findNodeByVersion(version2);
+			return findBranchNode(node1, node1);
+		}
+		return null;
+	}
 
-	
+	@Override
+	public boolean isEmpty() {
+		return allNodes.isEmpty();
+	}
+
+	@Override
+	public Long getSize() {
+		return new Long(allNodes.size());
+	}
+
+	@Override
+	public <T> VersionedNode createNode(Synchronizable<T> data) throws NoLockException {
+		return getNodeFactory().createNode(data);
+	}
+
+	@Override
+	public VersionedNodeFactory getNodeFactory() {
+		return new InMemoryNodeFactory();
+	}
+
 }

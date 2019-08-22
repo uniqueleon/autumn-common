@@ -1,15 +1,28 @@
 package org.aztec.autumn.common.utils.concurrent.impl;
 
+import java.util.List;
+
+import org.aztec.autumn.common.utils.concurrent.NoLockException;
 import org.aztec.autumn.common.utils.concurrent.Synchronizable;
 import org.aztec.autumn.common.utils.concurrent.VersionedNode;
+import org.aztec.autumn.common.utils.concurrent.VersionedNodeFactory;
+
+import com.beust.jcommander.internal.Lists;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class InMemoryTreeNode implements VersionedNode{
 	
-	private boolean isRoot;
-	private boolean isLeaf;
-	private int dept;
-	private VersionedNode parent;
-	private Synchronizable data;
+	protected boolean isRoot;
+	protected boolean isLeaf;
+	protected int dept;
+	@JsonIgnore
+	protected VersionedNode parent;
+	@JsonIgnore
+	protected Synchronizable data;
+
+	public InMemoryTreeNode() {
+		super();
+	}
 
 	public InMemoryTreeNode(Synchronizable data) {
 		this.data = data;
@@ -65,14 +78,33 @@ public class InMemoryTreeNode implements VersionedNode{
 
 	public void setParent(VersionedNode parent) {
 		this.parent = parent;
+		this.data.setPreviousVersion(parent.getData().getVersion());
 	}
 
-	public VersionedNode merge(VersionedNode otherNode) {
-		InMemoryTreeNode newNode = new InMemoryTreeNode(data);
-		newNode.data = data.cloneThis();
-		newNode.data.merge(otherNode.getData());
-		newNode.data.setPreviousVersion(data.getVersion());
-		newNode.parent = this;
+	public VersionedNode merge(VersionedNode branchNode,VersionedNode otherNode,VersionedNodeFactory nodeFactory) throws NoLockException {
+		VersionedNode newNode = nodeFactory.createNode(data);
+		newNode.setData( data.cloneThis());
+		newNode.getData().merge(otherNode.getData(),branchNode.getData());
+		newNode.getData().setVersion(data.generateVersion());
 		return newNode;
+	}
+
+	@Override
+	@JsonIgnore
+	public List<VersionedNode> getAncestors() {
+		List<VersionedNode> ancestors = Lists.newArrayList();
+		VersionedNode acestor = parent;
+		while(acestor != null) {
+			if(ancestors.contains(acestor)) {
+				throw new IllegalStateException("There may be a loop in tree!");
+			}
+			ancestors.add(acestor);
+			acestor = acestor.getParent();
+		}
+		return ancestors;
+	}
+
+	@Override
+	public void persist()  throws Exception{
 	}
 }

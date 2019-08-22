@@ -36,7 +36,9 @@ public class RedisUtil implements CacheUtils{
 	private String password = null;
 	private static final Map<String,Object> locks = Maps.newConcurrentMap();
 	private static LockChecker checker = null;
-	
+	static {
+		
+	}
 
 	public RedisUtil(String host,Integer port,String password){
 		this.hosts.add(host);
@@ -189,11 +191,11 @@ public class RedisUtil implements CacheUtils{
 	public <T> T get(String key, Class<T> retType,int retryTime) throws CacheException {
 		try {
 			//rLock.lock();
-			if (isStarted == false)
+			if (!isStarted)
 				return null;
 			String value = null;
 			synchronized (redisClient) {
-				redisClient.get(key);
+				value = redisClient.get(key);
 			}
 			//String value = redisClient.get().get(key);
 			if(value == null)
@@ -269,8 +271,18 @@ public class RedisUtil implements CacheUtils{
 		ayncSub.start();
 	}
 
+	public static final int DEFAULT_LOCK_TRY_TIME = 3;
 	@Override
 	public void lock(String key,long timeout) throws CacheException {
+		lock(key, timeout, DEFAULT_LOCK_TRY_TIME);
+	}
+	
+
+	public void lock(String key,long timeout,int tryTime) throws CacheException {
+		tryTime --;
+		if(tryTime < 0) {
+			throw new CacheException("lock acquired fail ,try time:" + DEFAULT_LOCK_TRY_TIME );
+		}
 		String value = System.currentTimeMillis() + "_" + timeout;
 		Long ret = 0l;
 		synchronized (redisClient) {
@@ -280,6 +292,7 @@ public class RedisUtil implements CacheUtils{
 			Object lockObj = locks.get(key);
 			if(lockObj == null) {
 				synchronized (locks) {
+					lockObj = locks.get(key);
 					if(lockObj == null) {
 						lockObj = new Object();
 						locks.put(key, lockObj);
@@ -320,7 +333,7 @@ public class RedisUtil implements CacheUtils{
 				lockObj.notifyAll();
 			}
 		}
-		locks.remove(key);
+		//locks.remove(key);
 	}
 	
 	private class LockChecker implements Runnable{
@@ -329,16 +342,19 @@ public class RedisUtil implements CacheUtils{
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			try {
-				while(runnable) {
+			while(runnable) {
+				try {
 					for(String lockKey : locks.keySet()) {
 						String checkValue = null;
 						synchronized (redisClient) {
 							checkValue = redisClient.get(lockKey);
 						}
 						if(checkValue == null) {
-							locks.get(lockKey).notifyAll();
-							locks.remove(lockKey);
+							Object lockObj = locks.get(lockKey);
+							synchronized (lockObj) {
+								lockObj.notifyAll();
+							}
+							//locks.remove(lockKey);
 						}
 						else {
 							String[] timeArr = checkValue.split("_");
@@ -351,9 +367,10 @@ public class RedisUtil implements CacheUtils{
 						}
 					}
 					Thread.currentThread().sleep(10);
+				} catch (Exception e) {
+					e.printStackTrace();
+					LOG.error(e.getMessage(),e);
 				}
-			} catch (Exception e) {
-				LOG.error(e.getMessage(),e);
 			}
 		}
 		
@@ -610,6 +627,7 @@ public class RedisUtil implements CacheUtils{
 			}
 			String writeContent = new String(toRedisBytes(thisBits));
 			cache(key, writeContent);
+			return true;
 		}
 		return false;
 	}
@@ -643,5 +661,38 @@ public class RedisUtil implements CacheUtils{
 	@Override
 	public String getPoolKey() {
 		return RedisUtilFactory.getPoolKey(hosts, ports);
+	}
+
+	@Override
+	public boolean substract(String key, String otherKey) throws CacheException {
+		if(exists(key) && exists(otherKey)) {
+			List<Long> thisBits = getAllSetBits(key);
+			List<Long> otherBits = getAllSetBits(otherKey);
+			
+			for(int i = 0;i < otherBits.size();i++) {
+				Long newBit = otherBits.get(i);
+				if(thisBits.contains(newBit)) {
+					thisBits.remove(newBit);
+				}
+			}
+			String writeContent = new String(toRedisBytes(thisBits));
+			cache(key, writeContent);
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public String lpop(String list) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.lpop(list);
+		}
+	}
+
+	@Override
+	public Long hlen(String set) throws CacheException {
+		synchronized (redisClient) {
+			return redisClient.hlen(set);
+		}
 	}
 }
