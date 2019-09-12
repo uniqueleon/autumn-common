@@ -21,7 +21,7 @@ public class ConcurrentTest {
 	private static Random random = new Random();
 	private static String uuid;
 	//1. 完全无锁 . 2.对象锁 3.CAS无锁 4.新无锁并发
-	private static int mode = 4;
+	private static int mode = 2;
 	private static int modulus = 6;
 	private static final long BUSSINESS_COST = 100l;
 	public ConcurrentTest() {
@@ -44,6 +44,7 @@ public class ConcurrentTest {
 				tList.add(sat);
 			}
 			for(TestSafeThread t : tList) {
+				//t.start();
 				t.join();
 			}
 			Integer result = TestSafeThread.getResult();

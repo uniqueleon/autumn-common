@@ -1,6 +1,9 @@
 package org.aztec.autumn.common.utils.server;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +21,9 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Maps;
+
 /**
  * Main class.
  *
@@ -25,6 +31,40 @@ import org.slf4j.LoggerFactory;
 public class RESTServer {
     // Base URI the Grizzly HTTP server will listen on
     private static final Logger LOG = LoggerFactory.getLogger(RESTServer.class);
+    private static final Map<String,Thread> statusCheckers = Maps.newConcurrentMap();
+    private static final Map<String,Boolean> runningFlags = Maps.newConcurrentMap();
+    private static ServerStatusChecker checker = new ServerStatusChecker();
+    
+    private static class ServerStatusChecker extends Thread{
+
+		@Override
+		public void run() {
+			while(!runningFlags.isEmpty()) {
+				List<String> removedKey = Lists.newArrayList();
+				for(Entry<String, Boolean> flag : runningFlags.entrySet()) {
+					if(!flag.getValue()) {
+						removedKey.add(flag.getKey());
+					}
+				}
+				for(String key : removedKey) {
+					runningFlags.remove(key);
+				}
+			}
+			super.run();
+		}
+    	
+    }
+    
+    public static void start(String url) {
+    	runningFlags.put(url, true);
+    	if(!checker.isAlive()) {
+        	synchronized (checker) {
+    			if(!checker.isAlive()) {
+    				checker.start();
+    			}
+    		}
+    	}
+    }
 
     /**
      * Starts Grizzly HTTP server exposing JAX-RS resources defined in this application.
@@ -45,6 +85,7 @@ public class RESTServer {
         // exposing the Jersey application at BASE_URI
     	HttpServer server = startSimpleServer(baseUri, wsPackages);
     	LOG.info("Start finished!");
+    	start(baseUri);
     	return server;
     }
     

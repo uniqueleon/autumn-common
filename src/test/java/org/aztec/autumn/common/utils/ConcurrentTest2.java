@@ -27,7 +27,7 @@ public class ConcurrentTest2 {
 	private static final long BUSSINESS_COST = 100l;
 	private static String uuid;
 
-	private static NoLockDataSynchronizer synchronizer = SynchronizerFactory.getSynchronizer(SynchronizerNames.DISTRIBUTED);
+	private static NoLockDataSynchronizer synchronizer = SynchronizerFactory.getSynchronizer(SynchronizerNames.MEMORY);
 	private static CacheUtils cacheUtil = UtilsFactory.getInstance().getDefaultCacheUtils();
 
 	public ConcurrentTest2() {
@@ -36,7 +36,7 @@ public class ConcurrentTest2 {
 	
 	public static void main(String[] args) {
 		try {
-			cacheUtil.unlock(REDIS_TEST_LOCK_KEY);
+			//cacheUtil.unlock(REDIS_TEST_LOCK_KEY);
 //			uuid = UUID.randomUUID().toString();
 //			RedisTreeNode rtn = new RedisTreeNode(new ConcurrentCountNumber(uuid,0, new int[] {}));
 //			JsonUtils jsonUtil = UtilsFactory.getInstance().getJsonUtils();
@@ -50,7 +50,7 @@ public class ConcurrentTest2 {
 	
 	public static void doTest() {
 		try {
-			cacheUtil.cache(REDIS_TEST_COUNT_KEY,"" + startData);
+			//cacheUtil.cache(REDIS_TEST_COUNT_KEY,"" + startData);
 			Long curTime = System.currentTimeMillis();
 			uuid = StringUtils.getRamdonNumberString(20);
 			int threadNum = 100;
